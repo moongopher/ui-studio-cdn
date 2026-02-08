@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.6';
+const ENGINE_VERSION = '0.7';
 
 // --- Light DOM helpers for applyOptions ---
 function toggle(elementId, show) {
@@ -16,14 +16,53 @@ function toggle(elementId, show) {
 }
 
 function toggleVariant(els, active, chosenVariant) {
+  const isPreview = window._isPreview;
   Object.entries(els).forEach(([key, elId]) => {
     const el = document.getElementById(elId);
     if (!el) return;
-    if (active && key === chosenVariant) {
+    if (isPreview) {
+      // Crossfade mode: stack variants absolutely, fade with opacity
+      const parent = el.parentElement;
+      if (parent && !parent._mtCrossfadeSetup) {
+        parent.style.position = 'relative';
+        parent._mtCrossfadeSetup = true;
+      }
       el.style.display = '';
+      el.style.position = 'absolute';
+      el.style.top = '0';
+      el.style.left = '0';
+      el.style.width = '100%';
+      el.style.transition = 'opacity 200ms ease';
+      if (active && key === chosenVariant) {
+        el.style.opacity = '1';
+        el.style.pointerEvents = '';
+      } else {
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+      }
     } else {
-      el.style.display = 'none';
+      // Normal mode: display toggle, clean up crossfade styles
+      if (el._mtWasCrossfade) {
+        el.style.position = '';
+        el.style.top = '';
+        el.style.left = '';
+        el.style.width = '';
+        el.style.transition = '';
+        el.style.opacity = '';
+        el.style.pointerEvents = '';
+        el._mtWasCrossfade = false;
+        if (el.parentElement && el.parentElement._mtCrossfadeSetup) {
+          el.parentElement.style.position = '';
+          el.parentElement._mtCrossfadeSetup = false;
+        }
+      }
+      if (active && key === chosenVariant) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
     }
+    if (isPreview) el._mtWasCrossfade = true;
   });
 }
 
@@ -962,6 +1001,29 @@ class OptionsPanel extends HTMLElement {
       color: var(--c-surface);
     }
 
+    /* --- Compare Button --- */
+    .compare-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-1);
+      margin-top: var(--sp-2);
+      padding: var(--sp-1) 10px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      border: 1px dashed var(--c-border-mid);
+      border-radius: var(--r-sm);
+      background: var(--c-surface);
+      color: var(--c-text-faint);
+      cursor: pointer;
+      transition: all var(--t-fast);
+    }
+    .compare-btn:hover {
+      border-color: var(--c-primary);
+      border-style: solid;
+      color: var(--c-primary);
+      background: var(--c-primary-lighter);
+    }
+
     /* --- Copy Footer --- */
     .copy-footer {
       padding: var(--sp-3) var(--sp-4);
@@ -1350,6 +1412,7 @@ class OptionsPanel extends HTMLElement {
             html += `<button class="variant-btn${currentVariant === key ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-variant-opt="${opt.id}" data-variant-key="${key}">${this.esc(label)}</button>`;
           });
           html += `</div>`;
+          html += `<button class="compare-btn" data-compare-opt="${opt.id}">&#8862; Compare</button>`;
         }
 
         html += `</div>`; // end toggle-detail
@@ -1452,6 +1515,13 @@ class OptionsPanel extends HTMLElement {
         });
         btn.addEventListener('mouseleave', () => this.endPreview());
       });
+
+      body.querySelectorAll('.compare-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          CompareMode.open(parseInt(btn.dataset.compareOpt));
+        });
+      });
     }
 
     // --- Guide Mode Events ---
@@ -1498,6 +1568,12 @@ class OptionsPanel extends HTMLElement {
         if (isInputFocused()) return;
         e.preventDefault();
         this.toggleHelpOverlay();
+        return;
+      }
+
+      if (e.key === 'Escape' && CompareMode.isOpen) {
+        e.preventDefault();
+        CompareMode.close();
         return;
       }
 
@@ -2104,6 +2180,10 @@ class OptionsPanel extends HTMLElement {
   startPreview(activeOverride, variantsOverride) {
     this._previewActive = activeOverride;
     this._previewVariants = variantsOverride;
+    window._isPreview = true;
+    // Add pulsing border indicator
+    const activeView = document.querySelector('.mt-view.active');
+    if (activeView) activeView.classList.add('mt-preview-active');
     this.fireOptionsChange();
   }
 
@@ -2111,6 +2191,10 @@ class OptionsPanel extends HTMLElement {
     if (this._previewActive === null && this._previewVariants === null) return;
     this._previewActive = null;
     this._previewVariants = null;
+    window._isPreview = false;
+    // Remove pulsing border indicator
+    const previewView = document.querySelector('.mt-preview-active');
+    if (previewView) previewView.classList.remove('mt-preview-active');
     this.fireOptionsChange();
   }
 
@@ -2121,6 +2205,312 @@ class OptionsPanel extends HTMLElement {
     return div.innerHTML;
   }
 }
+
+/* ============================================================
+   COMPARE MODE
+   ============================================================ */
+class CompareCanvas {
+  constructor(cellEl, onZoomChange) {
+    this.cell = cellEl;
+    this.canvas = cellEl.querySelector('.mt-compare-cell-canvas');
+    this.viewport = cellEl.querySelector('.mt-compare-cell-viewport');
+    this.zoomDisplay = cellEl.querySelector('.mt-compare-cell-zoom');
+    this.onZoomChange = onZoomChange;
+    this.zoom = 1.0;
+    this.panX = 0;
+    this.panY = 0;
+    this._panning = false;
+    this._lastX = 0;
+    this._lastY = 0;
+    this._syncing = false;
+
+    this.canvas.addEventListener('wheel', this._onWheel.bind(this), { passive: false });
+    this.canvas.addEventListener('mousedown', this._onMouseDown.bind(this));
+    this._onMouseMoveBound = this._onMouseMove.bind(this);
+    this._onMouseUpBound = this._onMouseUp.bind(this);
+  }
+
+  setZoom(level, cx, cy) {
+    const old = this.zoom;
+    this.zoom = Math.max(0.25, Math.min(2.0, level));
+    if (cx != null && cy != null) {
+      const d = this.zoom / old;
+      this.panX = cx - (cx - this.panX) * d;
+      this.panY = cy - (cy - this.panY) * d;
+    }
+    this.updateTransform();
+  }
+
+  setPan(x, y) { this.panX = x; this.panY = y; this.updateTransform(); }
+
+  updateTransform() {
+    this.viewport.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+    if (this.zoomDisplay) this.zoomDisplay.textContent = `${Math.round(this.zoom * 100)}%`;
+  }
+
+  reset() { this.zoom = 1.0; this.panX = 0; this.panY = 0; this.updateTransform(); }
+
+  _onWheel(e) {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const delta = e.deltaY > 0 ? -1 : 1;
+      const rect = this.canvas.getBoundingClientRect();
+      this.setZoom(this.zoom + delta * 0.1, e.clientX - rect.left, e.clientY - rect.top);
+    } else {
+      let dx = e.deltaX, dy = e.deltaY;
+      if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
+      this.setPan(this.panX - dx, this.panY - dy);
+    }
+    if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
+  }
+
+  _onMouseDown(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    this._panning = true;
+    this._lastX = e.clientX;
+    this._lastY = e.clientY;
+    document.addEventListener('mousemove', this._onMouseMoveBound);
+    document.addEventListener('mouseup', this._onMouseUpBound);
+  }
+
+  _onMouseMove(e) {
+    if (!this._panning) return;
+    this.setPan(this.panX + e.clientX - this._lastX, this.panY + e.clientY - this._lastY);
+    this._lastX = e.clientX;
+    this._lastY = e.clientY;
+    if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
+  }
+
+  _onMouseUp() {
+    this._panning = false;
+    document.removeEventListener('mousemove', this._onMouseMoveBound);
+    document.removeEventListener('mouseup', this._onMouseUpBound);
+  }
+
+  destroy() {
+    this._onMouseUp();
+  }
+}
+
+const CompareMode = {
+  isOpen: false,
+  optionId: null,
+  option: null,
+  syncZoom: true,
+  cells: [],
+  overlayEl: null,
+  _escHandler: null,
+
+  open(optId) {
+    if (this.isOpen) this.close();
+    const opt = CONFIG.options.find(o => o.id === optId);
+    if (!opt || !opt.variants) return;
+    this.optionId = optId;
+    this.option = opt;
+    this.isOpen = true;
+
+    // Ensure option is active so elements are visible
+    const panel = document.querySelector('options-panel');
+    if (panel && !panel.activeOptions.has(optId)) {
+      panel.activeOptions.add(optId);
+      panel.syncToggles();
+      panel.saveState();
+      panel.fireOptionsChange();
+    }
+
+    // Switch to the option's target view
+    if (opt.target && opt.target.view) switchView(opt.target.view);
+
+    this.buildGrid();
+    document.body.classList.add('mt-compare-open');
+
+    // Escape key handler
+    this._escHandler = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+    };
+    document.addEventListener('keydown', this._escHandler);
+  },
+
+  close() {
+    if (!this.isOpen) return;
+    this.destroyGrid();
+    document.body.classList.remove('mt-compare-open');
+    if (this._escHandler) {
+      document.removeEventListener('keydown', this._escHandler);
+      this._escHandler = null;
+    }
+    this.isOpen = false;
+    this.optionId = null;
+    this.option = null;
+    this.cells = [];
+  },
+
+  pick(key) {
+    const panel = document.querySelector('options-panel');
+    if (panel) {
+      panel.optionVariants[this.optionId] = key;
+      // Update variant button selection in shadow DOM
+      const body = panel.shadowRoot.querySelector('.panel-body');
+      if (body) {
+        body.querySelectorAll(`[data-variant-opt="${this.optionId}"]`).forEach(b => {
+          b.classList.toggle('selected', b.dataset.variantKey === key);
+        });
+      }
+      panel.saveState();
+      panel.fireOptionsChange();
+    }
+    this.close();
+  },
+
+  buildGrid() {
+    const opt = this.option;
+    const variantKeys = Object.keys(opt.variants);
+    const cols = Math.ceil(Math.sqrt(variantKeys.length));
+
+    // Find the source view's canvas content
+    const targetView = opt.target && opt.target.view
+      ? document.getElementById('view-' + opt.target.view)
+      : document.querySelector('.mt-view.active');
+    const sourceContent = targetView ? targetView.querySelector('.mt-canvas-content') : null;
+
+    // Build overlay using DOM methods
+    const overlay = document.createElement('div');
+    overlay.className = 'mt-compare-overlay';
+
+    // Toolbar
+    const toolbar = document.createElement('div');
+    toolbar.className = 'mt-compare-toolbar';
+
+    const title = document.createElement('span');
+    title.className = 'mt-compare-title';
+    title.textContent = 'Compare: ' + opt.name;
+    toolbar.appendChild(title);
+
+    const syncLabel = document.createElement('label');
+    syncLabel.className = 'mt-compare-sync-label';
+    const syncCb = document.createElement('input');
+    syncCb.type = 'checkbox';
+    syncCb.checked = this.syncZoom;
+    syncLabel.appendChild(syncCb);
+    syncLabel.appendChild(document.createTextNode('Sync zoom'));
+    toolbar.appendChild(syncLabel);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'mt-compare-close-btn';
+    closeBtn.textContent = 'Close';
+    toolbar.appendChild(closeBtn);
+
+    overlay.appendChild(toolbar);
+
+    // Sync toggle
+    syncCb.addEventListener('change', (e) => { this.syncZoom = e.target.checked; });
+    closeBtn.addEventListener('click', () => this.close());
+
+    // Grid
+    const grid = document.createElement('div');
+    grid.className = 'mt-compare-grid';
+    const rows = Math.ceil(variantKeys.length / cols);
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    overlay.appendChild(grid);
+
+    this.cells = [];
+    variantKeys.forEach(key => {
+      const label = opt.variants[key];
+      const cell = document.createElement('div');
+      cell.className = 'mt-compare-cell';
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'mt-compare-cell-header';
+
+      const cellLabel = document.createElement('span');
+      cellLabel.className = 'mt-compare-cell-label';
+      cellLabel.textContent = label;
+      header.appendChild(cellLabel);
+
+      const zoomDisp = document.createElement('span');
+      zoomDisp.className = 'mt-compare-cell-zoom';
+      zoomDisp.textContent = '100%';
+      header.appendChild(zoomDisp);
+
+      const pickBtn = document.createElement('button');
+      pickBtn.className = 'mt-compare-pick-btn';
+      pickBtn.textContent = 'Pick';
+      pickBtn.addEventListener('click', () => this.pick(key));
+      header.appendChild(pickBtn);
+
+      cell.appendChild(header);
+
+      // Canvas area
+      const canvasArea = document.createElement('div');
+      canvasArea.className = 'mt-compare-cell-canvas';
+      const viewport = document.createElement('div');
+      viewport.className = 'mt-compare-cell-viewport';
+      const content = document.createElement('div');
+      content.className = 'mt-compare-cell-content';
+
+      // Clone source content with variant visibility
+      if (sourceContent) {
+        const freshClone = sourceContent.cloneNode(true);
+        const targetEl = opt.target && opt.target.el;
+
+        if (targetEl) {
+          // Show target element (remove mt-hidden)
+          const targetInClone = freshClone.querySelector(`#${CSS.escape(targetEl)}`);
+          if (targetInClone) targetInClone.classList.remove('mt-hidden');
+
+          // Show only this variant, hide others
+          variantKeys.forEach(vk => {
+            const varEl = freshClone.querySelector(`#${CSS.escape(targetEl + '-' + vk)}`);
+            if (varEl) varEl.style.display = (vk === key) ? '' : 'none';
+          });
+        }
+
+        // Strip IDs to prevent collisions
+        freshClone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        freshClone.removeAttribute('id');
+
+        content.appendChild(freshClone);
+      }
+
+      viewport.appendChild(content);
+      canvasArea.appendChild(viewport);
+      cell.appendChild(canvasArea);
+      grid.appendChild(cell);
+
+      // Create CompareCanvas instance
+      const cc = new CompareCanvas(cell, (source) => {
+        if (this.syncZoom) this.syncZoomToAll(source);
+      });
+      this.cells.push({ key, label, canvas: cc, element: cell });
+    });
+
+    document.body.appendChild(overlay);
+    this.overlayEl = overlay;
+  },
+
+  destroyGrid() {
+    this.cells.forEach(c => c.canvas.destroy());
+    if (this.overlayEl) {
+      this.overlayEl.remove();
+      this.overlayEl = null;
+    }
+  },
+
+  syncZoomToAll(source) {
+    this.cells.forEach(c => {
+      if (c.canvas === source || c.canvas._syncing) return;
+      c.canvas._syncing = true;
+      c.canvas.zoom = source.zoom;
+      c.canvas.panX = source.panX;
+      c.canvas.panY = source.panY;
+      c.canvas.updateTransform();
+      c.canvas._syncing = false;
+    });
+  },
+};
 
 /* ============================================================
    CANVAS WORKSPACE
