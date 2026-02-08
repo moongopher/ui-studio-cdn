@@ -1,0 +1,237 @@
+/* ============================================================
+   DESIGN TOKENS + LIGHT DOM STYLES — Do not modify
+   ============================================================ */
+:root {
+  /* Spacing (4px grid) */
+  --sp-1: 4px;   --sp-2: 8px;   --sp-3: 12px;  --sp-4: 16px;
+  --sp-5: 20px;  --sp-6: 24px;  --sp-8: 32px;  --sp-10: 40px;  --sp-12: 48px;
+
+  /* Type */
+  --text-xs: 11px;  --text-sm: 12px;  --text-base: 13px;
+  --text-md: 14px;  --text-lg: 16px;
+
+  /* Colors */
+  --c-primary: #2563eb;  --c-primary-hover: #1d4ed8;
+  --c-primary-light: #dbeafe;  --c-primary-lighter: #eff6ff;
+  --c-success: #16a34a;
+  --c-danger: #dc2626;  --c-danger-light: #fef2f2;
+  --c-recommended: #15803d;  --c-recommended-bg: #f0fdf4;  --c-recommended-border: #86efac;
+  --c-surface: #fff;  --c-surface-alt: #f3f4f6;  --c-surface-alt-hover: #e5e7eb;
+  --c-bg: #f0f2f5;
+  --c-border: #e0e0e0;  --c-border-light: #eee;  --c-border-mid: #d0d0d0;
+  --c-text: #1a1a1a;  --c-text-2: #333;  --c-text-muted: #666;
+  --c-text-faint: #888;  --c-text-disabled: #999;  --c-toggle-off: #ccc;
+
+  /* Radius */
+  --r-sm: 4px;  --r-md: 6px;  --r-lg: 8px;  --r-pill: 9999px;
+
+  /* Transitions */
+  --t-fast: 0.15s ease;  --t-normal: 0.2s ease;
+  --t-slide: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Shadows */
+  --shadow-panel: -2px 0 12px rgba(0,0,0,0.06);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-float: 0 4px 24px rgba(0,0,0,0.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  transition: padding-right var(--t-slide);
+}
+
+/* --- View Tabs --- */
+#mt-view-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--c-surface);
+  border-bottom: 2px solid var(--c-border);
+  padding: 0 var(--sp-6);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  transition: padding-right var(--t-slide);
+}
+#mt-view-tabs.mt-tabs-hidden { display: none; }
+.mt-tab {
+  padding: var(--sp-3) var(--sp-6);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--c-text-muted);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.mt-tab:hover { color: var(--c-text-2); }
+.mt-tab.active { color: var(--c-primary); border-bottom-color: var(--c-primary); }
+
+/* --- Views --- */
+#mt-views {
+  flex: 1;
+  overflow: hidden;
+  transition: padding-right var(--t-slide);
+}
+.mt-view { display: none; position: relative; overflow: hidden; height: 100%; }
+.mt-view.active { display: block; }
+
+/* --- Canvas Workspace --- */
+.mt-canvas-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.mt-canvas-content {
+  position: relative;
+  min-width: 2000px;
+  min-height: 2000px;
+  padding: var(--sp-6);
+}
+.mt-canvas-content.mt-grid {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent calc(var(--sp-4) * 5 - 1px),
+      var(--c-border-light) calc(var(--sp-4) * 5 - 1px),
+      var(--c-border-light) calc(var(--sp-4) * 5)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent calc(var(--sp-4) * 5 - 1px),
+      var(--c-border-light) calc(var(--sp-4) * 5 - 1px),
+      var(--c-border-light) calc(var(--sp-4) * 5)
+    );
+}
+.mt-canvas-item {
+  position: absolute;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- Canvas Cursor States --- */
+.mt-view.mt-space-held { cursor: grab; }
+.mt-view.mt-panning { cursor: grabbing; }
+.mt-view.mt-space-held * { cursor: grab !important; }
+.mt-view.mt-panning * { cursor: grabbing !important; }
+
+/* --- Canvas Zoom Controls --- */
+.mt-zoom-controls {
+  position: absolute;
+  bottom: var(--sp-4);
+  right: var(--sp-4);
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-2);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  user-select: none;
+}
+.mt-zoom-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: all var(--t-fast);
+}
+.mt-zoom-controls button:hover {
+  background: var(--c-surface-alt);
+  border-color: var(--c-border-mid);
+}
+.mt-zoom-controls button:active { transform: scale(0.95); }
+.mt-zoom-controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+.mt-zoom-controls button:disabled:hover { background: var(--c-surface); border-color: var(--c-border); }
+.mt-zoom-level {
+  min-width: 48px;
+  padding: 0 var(--sp-2);
+  font-size: var(--text-base);
+  font-weight: 500;
+  text-align: center;
+  color: var(--c-text-muted);
+}
+@media (max-width: 768px) {
+  /* --- Body + layout padding reset --- */
+  body { padding-right: 0 !important; }
+  #mt-view-tabs { padding-right: 0 !important; }
+  #mt-views { padding-right: 0 !important; }
+
+  /* --- View tabs → scrollable pills --- */
+  #mt-view-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--sp-2) var(--sp-3);
+    gap: var(--sp-2);
+    border-bottom: 1px solid var(--c-border);
+    scrollbar-width: none;
+  }
+  #mt-view-tabs::-webkit-scrollbar { display: none; }
+  .mt-tab {
+    flex-shrink: 0;
+    padding: var(--sp-2) var(--sp-4);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-pill);
+    border-bottom: 1px solid var(--c-border);
+    margin-bottom: 0;
+    font-size: var(--text-sm);
+  }
+  .mt-tab.active {
+    background: var(--c-primary);
+    color: #fff;
+    border-color: var(--c-primary);
+  }
+
+  /* --- Zoom controls touch-friendly --- */
+  .mt-zoom-controls {
+    bottom: var(--sp-3);
+    right: var(--sp-3);
+    padding: var(--sp-2);
+  }
+  .mt-zoom-controls button {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  .mt-zoom-level { font-size: var(--text-md); min-width: 56px; }
+}
+
+/* --- Utility --- */
+.mt-hidden { display: none !important; }
+@keyframes mt-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.15); }
+}
+.mt-highlight {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+  animation: mt-pulse 2s ease-in-out infinite;
+}
