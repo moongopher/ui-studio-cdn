@@ -1023,6 +1023,27 @@ class OptionsPanel extends HTMLElement {
       color: var(--c-primary);
       background: var(--c-primary-lighter);
     }
+    .guide-compare-btn {
+      display: block;
+      margin-top: var(--sp-3);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      border: 1px dashed var(--c-border-mid);
+      border-radius: var(--r-md);
+      background: var(--c-surface);
+      color: var(--c-text-faint);
+      cursor: pointer;
+      transition: all var(--t-fast);
+      text-align: center;
+      width: 100%;
+    }
+    .guide-compare-btn:hover {
+      border-color: var(--c-primary);
+      border-style: solid;
+      color: var(--c-primary);
+      background: var(--c-primary-lighter);
+    }
 
     /* --- Copy Footer --- */
     .copy-footer {
@@ -1926,8 +1947,20 @@ class OptionsPanel extends HTMLElement {
         this.startPreview(preview, null);
       });
       skipCard.addEventListener('mouseleave', () => this.endPreview());
+
+      // Compare button in guide view
+      let guideCompareBtn = cardsEl.parentElement.querySelector('.guide-compare-btn');
+      if (!guideCompareBtn) {
+        guideCompareBtn = document.createElement('button');
+        guideCompareBtn.className = 'guide-compare-btn';
+        guideCompareBtn.textContent = '\u22A2 Compare';
+        cardsEl.parentElement.appendChild(guideCompareBtn);
+      }
+      guideCompareBtn.onclick = (e) => { e.stopPropagation(); CompareMode.open(opt.id); };
     } else {
       varSection.style.display = 'none';
+      const existingBtn = root.querySelector('.guide-compare-btn');
+      if (existingBtn) existingBtn.remove();
     }
 
     // Generate more + notes — restore open state if option has notes
@@ -2323,6 +2356,14 @@ const CompareMode = {
     if (opt.target && opt.target.view) switchView(opt.target.view);
 
     this.buildGrid();
+
+    // Position overlay to leave panel visible
+    const panelEl = document.querySelector('options-panel');
+    if (panelEl && this.overlayEl) {
+      const pw = panelEl.offsetWidth;
+      this.overlayEl.style.right = pw + 'px';
+    }
+
     document.body.classList.add('mt-compare-open');
 
     // Escape key handler
@@ -2350,6 +2391,12 @@ const CompareMode = {
     const panel = document.querySelector('options-panel');
     if (panel) {
       panel.optionVariants[this.optionId] = key;
+      // Mark as accepted in guide mode
+      if (panel.panelMode === 'guide') {
+        panel.activeOptions.add(this.optionId);
+        panel.guideDecisions[this.optionId] = 'yes';
+        panel.syncToggles();
+      }
       // Update variant button selection in shadow DOM
       const body = panel.shadowRoot.querySelector('.panel-body');
       if (body) {
@@ -2359,6 +2406,8 @@ const CompareMode = {
       }
       panel.saveState();
       panel.fireOptionsChange();
+      // Refresh guide view
+      if (panel.panelMode === 'guide') panel.updateGuide();
     }
     this.close();
   },

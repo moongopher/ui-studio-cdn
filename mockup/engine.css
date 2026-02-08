@@ -241,7 +241,7 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
+  right: 340px;
   bottom: 0;
   z-index: 10000;
   background: var(--c-bg);
@@ -364,11 +364,9 @@ body {
 }
 body.mt-compare-open #mt-views {
   opacity: 0.3;
-  pointer-events: none;
 }
 body.mt-compare-open #mt-view-tabs {
   opacity: 0.3;
-  pointer-events: none;
 }
 @media (max-width: 768px) {
   .mt-compare-grid {
