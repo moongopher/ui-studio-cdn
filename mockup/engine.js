@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.7';
+const ENGINE_VERSION = '0.8';
 
 // --- Light DOM helpers for applyOptions ---
 function toggle(elementId, show) {
@@ -203,10 +203,9 @@ class OptionsPanel extends HTMLElement {
           <button class="mode-pill-btn${this.panelMode === 'guide' ? ' active' : ''}" data-mode="guide">Guide</button>
           <button class="mode-pill-btn${this.panelMode === 'list' ? ' active' : ''}" data-mode="list">List</button>
         </div>
-        <button class="panel-help-btn" title="Keyboard shortcuts (?)">
+        <button class="panel-help-btn" title="Help & About">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600" font-family="system-ui">?</text></svg>
         </button>
-        <span class="engine-version">v${ENGINE_VERSION}</span>
       </div>
       <div class="panel-header">
         <h2><span class="panel-title">${this.esc(CONFIG.title)}</span> <span class="active-count">${this.activeOptions.size}</span></h2>
@@ -262,46 +261,126 @@ class OptionsPanel extends HTMLElement {
     <div class="help-overlay" style="display:none">
       <div class="help-overlay-backdrop"></div>
       <div class="help-overlay-modal">
-        <div class="help-overlay-header">
-          <span class="help-overlay-title">Keyboard Shortcuts</span>
-          <kbd class="help-overlay-dismiss">? to close</kbd>
+        <div class="help-modal-sidebar">
+          <button class="help-tab active" data-tab="shortcuts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Shortcuts</span>
+          </button>
+          <button class="help-tab" data-tab="about">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>About</span>
+          </button>
+          <button class="help-tab" data-tab="diagnostics">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Diagnostics</span>
+          </button>
+          <button class="help-tab" data-tab="info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Info</span>
+          </button>
         </div>
-        <div class="help-overlay-body">
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Show/hide this help</span>
-            <kbd class="help-overlay-key">?</kbd>
+        <div class="help-modal-content">
+          <div class="help-modal-header">
+            <span class="help-modal-title">Shortcuts</span>
+            <kbd class="help-modal-dismiss">Esc to close</kbd>
           </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Close overlay/modal</span>
-            <kbd class="help-overlay-key">Esc</kbd>
+          <div class="help-tab-panel active" data-panel="shortcuts">
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Show/hide this help</span>
+              <kbd class="help-overlay-key">?</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Close overlay/modal</span>
+              <kbd class="help-overlay-key">Esc</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Pan mode (hold)</span>
+              <kbd class="help-overlay-key">Space</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Zoom in</span>
+              <kbd class="help-overlay-key">Ctrl/Cmd + =</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Zoom out</span>
+              <kbd class="help-overlay-key">Ctrl/Cmd + -</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Reset zoom & pan</span>
+              <kbd class="help-overlay-key">Ctrl/Cmd + 0</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Zoom to 100%</span>
+              <kbd class="help-overlay-key">Ctrl/Cmd + 1</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Zoom to maximum</span>
+              <kbd class="help-overlay-key">Ctrl/Cmd + 9</kbd>
+            </div>
+            <div class="help-overlay-row">
+              <span class="help-overlay-action">Reset zoom & pan</span>
+              <kbd class="help-overlay-key">Double-click</kbd>
+            </div>
           </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Pan mode (hold)</span>
-            <kbd class="help-overlay-key">Space</kbd>
+          <div class="help-tab-panel" data-panel="about">
+            <div class="help-info-grid">
+              <div class="help-info-item">
+                <div class="help-info-label">Engine Version</div>
+                <div class="help-info-value">v${ENGINE_VERSION}</div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Mockup Title</div>
+                <div class="help-info-value">${this.esc(CONFIG.title)}</div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Repository</div>
+                <div class="help-info-value"><a href="https://github.com/moongopher/ui-studio" target="_blank" rel="noopener">moongopher/ui-studio</a></div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">CDN</div>
+                <div class="help-info-value"><a href="https://github.com/moongopher/ui-studio-cdn" target="_blank" rel="noopener">moongopher/ui-studio-cdn</a></div>
+              </div>
+            </div>
           </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Zoom in</span>
-            <kbd class="help-overlay-key">Ctrl/Cmd + =</kbd>
+          <div class="help-tab-panel" data-panel="diagnostics">
+            <div class="help-info-grid">
+              <div class="help-info-item">
+                <div class="help-info-label">Browser</div>
+                <div class="help-info-value help-diagnostic-browser"></div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Viewport</div>
+                <div class="help-info-value help-diagnostic-viewport"></div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Device Type</div>
+                <div class="help-info-value help-diagnostic-device"></div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Canvas Zoom</div>
+                <div class="help-info-value help-diagnostic-zoom"></div>
+              </div>
+            </div>
           </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Zoom out</span>
-            <kbd class="help-overlay-key">Ctrl/Cmd + -</kbd>
-          </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Reset zoom & pan</span>
-            <kbd class="help-overlay-key">Ctrl/Cmd + 0</kbd>
-          </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Zoom to 100%</span>
-            <kbd class="help-overlay-key">Ctrl/Cmd + 1</kbd>
-          </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Zoom to maximum</span>
-            <kbd class="help-overlay-key">Ctrl/Cmd + 9</kbd>
-          </div>
-          <div class="help-overlay-row">
-            <span class="help-overlay-action">Reset zoom & pan</span>
-            <kbd class="help-overlay-key">Double-click</kbd>
+          <div class="help-tab-panel" data-panel="info">
+            <div class="help-info-grid">
+              <div class="help-info-item">
+                <div class="help-info-label">File Path</div>
+                <div class="help-info-value help-info-filepath"></div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Storage Key</div>
+                <div class="help-info-value">${CONFIG.storageKey}</div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Total Options</div>
+                <div class="help-info-value">${CONFIG.options.length}</div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Active Options</div>
+                <div class="help-info-value help-info-active-count"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -424,15 +503,6 @@ class OptionsPanel extends HTMLElement {
     .panel-help-btn svg { display: block; }
     .panel-help-btn { margin-left: var(--sp-1); }
     .panel.collapsed .panel-help-btn { display: none; }
-
-    /* --- Engine Version Tag --- */
-    .engine-version {
-      font-size: 9px;
-      color: var(--c-text-faint);
-      font-family: monospace;
-      letter-spacing: 0.5px;
-    }
-    .panel.collapsed .engine-version { display: none; }
 
     /* --- Header Hint --- */
     .panel-hint {
@@ -1093,26 +1163,80 @@ class OptionsPanel extends HTMLElement {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%) scale(0.9);
       background: var(--c-surface);
       border-radius: var(--r-lg);
-      padding: var(--sp-6);
       box-shadow: var(--shadow-float);
-      min-width: 260px;
-      max-width: 400px;
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      min-width: 560px;
+      max-width: 680px;
+      max-height: 80vh;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
-    .help-overlay-header {
+    .help-overlay.active .help-overlay-modal {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .help-modal-sidebar {
+      background: var(--c-bg);
+      border-right: 1px solid var(--c-border);
+      padding: var(--sp-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-1);
+    }
+    .help-tab {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-3);
+      background: none;
+      border: none;
+      border-radius: var(--r-md);
+      cursor: pointer;
+      color: var(--c-text-muted);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .help-tab:hover {
+      background: var(--c-surface);
+      color: var(--c-text);
+    }
+    .help-tab.active {
+      background: var(--c-primary);
+      color: white;
+    }
+    .help-tab svg {
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+    .help-tab.active svg {
+      opacity: 1;
+    }
+    .help-modal-content {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .help-modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--sp-4);
+      padding: var(--sp-4) var(--sp-6);
+      border-bottom: 1px solid var(--c-border);
+      flex-shrink: 0;
     }
-    .help-overlay-title {
+    .help-modal-title {
       font-size: var(--text-lg);
       font-weight: 700;
       color: var(--c-text);
     }
-    .help-overlay-dismiss {
+    .help-modal-dismiss {
       background: var(--c-surface-alt);
       border: 1px solid var(--c-border);
       border-radius: var(--r-sm);
@@ -1121,10 +1245,15 @@ class OptionsPanel extends HTMLElement {
       font-family: monospace;
       color: var(--c-text-faint);
     }
-    .help-overlay-body {
-      display: flex;
+    .help-tab-panel {
+      display: none;
       flex-direction: column;
       gap: var(--sp-1);
+      padding: var(--sp-6);
+      overflow-y: auto;
+    }
+    .help-tab-panel.active {
+      display: flex;
     }
     .help-overlay-row {
       display: flex;
@@ -1145,6 +1274,35 @@ class OptionsPanel extends HTMLElement {
       font-family: monospace;
       color: var(--c-text-2);
       box-shadow: 0 1px 0 var(--c-border);
+    }
+    .help-info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--sp-4);
+    }
+    .help-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-1);
+    }
+    .help-info-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--c-text-faint);
+    }
+    .help-info-value {
+      font-size: var(--text-sm);
+      color: var(--c-text);
+      word-break: break-all;
+    }
+    .help-info-value a {
+      color: var(--c-primary);
+      text-decoration: none;
+    }
+    .help-info-value a:hover {
+      text-decoration: underline;
     }
 
     /* --- Drag Handle (mobile bottom sheet) --- */
@@ -1282,7 +1440,7 @@ class OptionsPanel extends HTMLElement {
         max-height: 70vh;
         border-radius: 16px 16px 0 0;
         box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
       :host(.mt-sheet-collapsed) {
         transform: translateY(calc(100% - 52px));
@@ -1290,6 +1448,7 @@ class OptionsPanel extends HTMLElement {
       .panel { border-left: none; border-top: 1px solid var(--c-border); }
       .panel-resize-handle { display: none; }
       .panel-drag-handle { display: flex; }
+      .panel-collapse-btn { display: none; }
 
       /* Touch targets (48px Material) */
       .toggle-row { min-height: 48px; }
@@ -1606,14 +1765,89 @@ class OptionsPanel extends HTMLElement {
     });
 
     backdrop.addEventListener('click', () => this.toggleHelpOverlay());
+
+    // Tab switching
+    this.shadowRoot.querySelectorAll('.help-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.dataset.tab;
+        // Update active tab
+        this.shadowRoot.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        // Update active panel
+        this.shadowRoot.querySelectorAll('.help-tab-panel').forEach(p => p.classList.remove('active'));
+        const panel = this.shadowRoot.querySelector(`[data-panel="${tabId}"]`);
+        if (panel) panel.classList.add('active');
+        // Update title
+        const title = this.shadowRoot.querySelector('.help-modal-title');
+        if (title) title.textContent = tab.querySelector('span').textContent;
+      });
+    });
   }
 
   toggleHelpOverlay() {
     this.helpOverlayOpen = !this.helpOverlayOpen;
     const overlay = this.shadowRoot.querySelector('.help-overlay');
-    overlay.style.display = this.helpOverlayOpen ? '' : 'none';
-    // Dismiss the hint on first use
-    if (this.helpOverlayOpen) this.dismissHint();
+
+    if (this.helpOverlayOpen) {
+      // Show overlay (display first, then animate)
+      overlay.style.display = '';
+      requestAnimationFrame(() => {
+        overlay.classList.add('active');
+      });
+      // Populate dynamic values
+      this.populateHelpDiagnostics();
+      this.populateHelpInfo();
+      // Dismiss the hint on first use
+      this.dismissHint();
+    } else {
+      // Hide overlay (animate out, then hide)
+      overlay.classList.remove('active');
+      setTimeout(() => {
+        if (!this.helpOverlayOpen) overlay.style.display = 'none';
+      }, 200); // Match transition duration
+    }
+  }
+
+  populateHelpDiagnostics() {
+    const root = this.shadowRoot;
+    // Browser info
+    const ua = navigator.userAgent;
+    let browser = 'Unknown';
+    if (ua.includes('Firefox/')) browser = 'Firefox';
+    else if (ua.includes('Edg/')) browser = 'Edge';
+    else if (ua.includes('Chrome/')) browser = 'Chrome';
+    else if (ua.includes('Safari/') && !ua.includes('Chrome/')) browser = 'Safari';
+    const browserEl = root.querySelector('.help-diagnostic-browser');
+    if (browserEl) browserEl.textContent = browser;
+
+    // Viewport
+    const viewportEl = root.querySelector('.help-diagnostic-viewport');
+    if (viewportEl) viewportEl.textContent = `${window.innerWidth} × ${window.innerHeight}px`;
+
+    // Device type
+    const deviceEl = root.querySelector('.help-diagnostic-device');
+    if (deviceEl) deviceEl.textContent = this._isMobile ? 'Mobile' : 'Desktop';
+
+    // Canvas zoom - get from first canvas workspace
+    const workspace = document.querySelector('mt-canvas-workspace');
+    const zoomEl = root.querySelector('.help-diagnostic-zoom');
+    if (zoomEl && workspace) {
+      const zoom = workspace._zoom || 1.0;
+      zoomEl.textContent = `${Math.round(zoom * 100)}%`;
+    } else if (zoomEl) {
+      zoomEl.textContent = 'N/A';
+    }
+  }
+
+  populateHelpInfo() {
+    const root = this.shadowRoot;
+    // File path
+    const filePathEl = root.querySelector('.help-info-filepath');
+    if (filePathEl) filePathEl.textContent = CONFIG.filePath || window.location.href;
+
+    // Active count
+    const activeCountEl = root.querySelector('.help-info-active-count');
+    if (activeCountEl) activeCountEl.textContent = this.activeOptions.size.toString();
   }
 
   dismissHint() {
