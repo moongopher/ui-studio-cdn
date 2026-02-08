@@ -2866,7 +2866,18 @@ class CanvasWorkspace {
   }
 
   reset() {
+    const r = this.container.getBoundingClientRect();
+    const oldZoom = this.zoom;
     this.zoom = 1.0;
+    // Preserve viewport center during zoom change
+    if (oldZoom !== 1.0) {
+      const zoomDelta = this.zoom / oldZoom;
+      const centerX = r.width / 2;
+      const centerY = r.height / 2;
+      this.panX = centerX - (centerX - this.panX) * zoomDelta;
+      this.panY = centerY - (centerY - this.panY) * zoomDelta;
+    }
+    // Center content
     this.centerContent();
     // Clear any scroll offset caused by scrollIntoView
     this.container.scrollTop = 0;
