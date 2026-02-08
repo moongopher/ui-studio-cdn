@@ -1702,9 +1702,12 @@ class OptionsPanel extends HTMLElement {
         if (ws) {
           const viewRect = view.getBoundingClientRect();
           const elRect = el.getBoundingClientRect();
+          const panel = document.querySelector('mockup-options');
+          const panelWidth = panel ? panel.offsetWidth : 0;
+          const availableWidth = viewRect.width - panelWidth;
           const contentX = (elRect.left - viewRect.left - ws.panX) / ws.zoom;
           const contentY = (elRect.top - viewRect.top - ws.panY) / ws.zoom;
-          const centerX = viewRect.width / 2 - (contentX + elRect.width / (2 * ws.zoom)) * ws.zoom;
+          const centerX = availableWidth / 2 - (contentX + elRect.width / (2 * ws.zoom)) * ws.zoom;
           const centerY = viewRect.height / 2 - (contentY + elRect.height / (2 * ws.zoom)) * ws.zoom;
           ws.setPan(centerX, centerY);
         } else {
@@ -2139,8 +2142,8 @@ class CanvasWorkspace {
       storageKey: config.storageKey || 'mockup-canvas-state'
     };
     this.zoom = 1.0;
-    this.panX = 24; // Offset to show canvas content padding (--sp-6)
-    this.panY = 24;
+    this.panX = 0;
+    this.panY = 0;
     this.isPanning = false;
     this.isSpaceHeld = false;
     this.lastMouseX = 0;
@@ -2151,8 +2154,10 @@ class CanvasWorkspace {
     this._touchPanning = false;
     this._lastTouchX = 0;
     this._lastTouchY = 0;
-    this.loadState();
     this.attachEventListeners();
+    if (!this.loadState()) {
+      this.centerContent();
+    }
     this.updateTransform();
     this.updateZoomUI();
   }
@@ -2170,13 +2175,26 @@ class CanvasWorkspace {
     this.saveState();
   }
 
-  zoomIn() { this.setZoom(this.zoom + this.config.zoomStep); }
-  zoomOut() { this.setZoom(this.zoom - this.config.zoomStep); }
+  zoomIn() {
+    const r = this.container.getBoundingClientRect();
+    this.setZoom(this.zoom + this.config.zoomStep, r.width / 2, r.height / 2);
+  }
+  zoomOut() {
+    const r = this.container.getBoundingClientRect();
+    this.setZoom(this.zoom - this.config.zoomStep, r.width / 2, r.height / 2);
+  }
+
+  centerContent() {
+    const vRect = this.container.getBoundingClientRect();
+    const cw = this.content.scrollWidth;
+    const ch = this.content.scrollHeight;
+    this.panX = (vRect.width - cw * this.zoom) / 2;
+    this.panY = (vRect.height - ch * this.zoom) / 2;
+  }
 
   reset() {
     this.zoom = 1.0;
-    this.panX = 0;
-    this.panY = 0;
+    this.centerContent();
     // Clear any scroll offset caused by scrollIntoView
     this.container.scrollTop = 0;
     this.container.scrollLeft = 0;
@@ -2186,8 +2204,13 @@ class CanvasWorkspace {
   }
 
   setPan(x, y) {
-    this.panX = x;
-    this.panY = y;
+    const vw = this.container.clientWidth;
+    const vh = this.container.clientHeight;
+    const cw = this.content.scrollWidth * this.zoom;
+    const ch = this.content.scrollHeight * this.zoom;
+    const margin = 0.1; // 10% of content must stay visible
+    this.panX = Math.max(-cw * (1 - margin), Math.min(vw * (1 - margin), x));
+    this.panY = Math.max(-ch * (1 - margin), Math.min(vh * (1 - margin), y));
     this.updateTransform();
     this.saveState();
   }
@@ -2221,10 +2244,12 @@ class CanvasWorkspace {
       if (saved) {
         const state = JSON.parse(saved);
         this.zoom = state.zoom || 1.0;
-        this.panX = state.panX !== undefined ? state.panX : 24;
-        this.panY = state.panY !== undefined ? state.panY : 24;
+        this.panX = state.panX !== undefined ? state.panX : 0;
+        this.panY = state.panY !== undefined ? state.panY : 0;
+        return true;
       }
     } catch (e) { /* corrupted data */ }
+    return false;
   }
 
   attachEventListeners() {
@@ -2238,6 +2263,12 @@ class CanvasWorkspace {
     document.addEventListener('mouseup', this.handleMouseUp.bind(this));
     document.addEventListener('keydown', this.handleKeyDown.bind(this));
     document.addEventListener('keyup', this.handleKeyUp.bind(this));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.isSpaceHeld) {
+        this.isSpaceHeld = false;
+        this.container.classList.remove('mt-space-held');
+      }
+    });
     const zoomInBtn = this.container.querySelector('[data-zoom-in]');
     const zoomOutBtn = this.container.querySelector('[data-zoom-out]');
     const resetBtn = this.container.querySelector('[data-zoom-reset]');
@@ -2256,7 +2287,10 @@ class CanvasWorkspace {
       this.setZoom(this.zoom + (delta * step), e.clientX - rect.left, e.clientY - rect.top);
     } else {
       // Two-finger scroll (trackpad) or mouse wheel without modifier → pan
-      this.setPan(this.panX - e.deltaX, this.panY - e.deltaY);
+      let dx = e.deltaX, dy = e.deltaY;
+      if (e.deltaMode === 1) { dx *= 16; dy *= 16; }       // LINE mode
+      else if (e.deltaMode === 2) { dx *= 100; dy *= 100; } // PAGE mode
+      this.setPan(this.panX - dx, this.panY - dy);
     }
   }
 
@@ -2303,8 +2337,16 @@ class CanvasWorkspace {
       if (e.key === '=' || e.key === '+') { e.preventDefault(); this.zoomIn(); }
       else if (e.key === '-' || e.key === '_') { e.preventDefault(); this.zoomOut(); }
       else if (e.key === '0') { e.preventDefault(); this.reset(); }
-      else if (e.key === '1') { e.preventDefault(); this.setZoom(1.0); }
-      else if (e.key === '9') { e.preventDefault(); this.setZoom(this.config.maxZoom); }
+      else if (e.key === '1') {
+        e.preventDefault();
+        const r = this.container.getBoundingClientRect();
+        this.setZoom(1.0, r.width / 2, r.height / 2);
+      }
+      else if (e.key === '9') {
+        e.preventDefault();
+        const r = this.container.getBoundingClientRect();
+        this.setZoom(this.config.maxZoom, r.width / 2, r.height / 2);
+      }
     }
   }
 
@@ -2325,7 +2367,7 @@ class CanvasWorkspace {
     } else if (touches.length === 1) {
       const t = touches[0];
       const target = document.elementFromPoint(t.clientX, t.clientY);
-      const isCanvas = target === this.container || target === this.viewport || target === this.content;
+      const isCanvas = target && (target === this.container || target.closest('.mt-view') === this.container);
       if (isCanvas) {
         e.preventDefault();
         this._touchPanning = true;
@@ -2411,8 +2453,52 @@ function initCanvasViews() {
   });
 }
 
+// --- DOM Bootstrap from window.MOCKUP ---
+function bootstrapFromMockup() {
+  if (!window.MOCKUP) return;
+  const { config, views } = window.MOCKUP;
+  if (!config || !views) return;
+
+  // Create view tabs container
+  if (!document.getElementById('mt-view-tabs')) {
+    const tabs = document.createElement('div');
+    tabs.id = 'mt-view-tabs';
+    document.body.insertBefore(tabs, document.body.firstChild);
+  }
+
+  // Create views container with view elements
+  if (!document.getElementById('mt-views')) {
+    const container = document.createElement('div');
+    container.id = 'mt-views';
+    const viewIds = config.views || [];
+    viewIds.forEach((v, i) => {
+      const div = document.createElement('div');
+      div.id = 'view-' + v.id;
+      div.className = 'mt-view' + (i === 0 ? ' active' : '');
+      // Views contain developer-authored HTML from the .mockup.js data file (same-origin, trusted)
+      div.innerHTML = views[v.id] || ''; // eslint-disable-line no-unsanitized/property
+      container.appendChild(div);
+    });
+    document.body.insertBefore(container, document.querySelector('options-panel') || document.body.lastChild);
+  }
+
+  // Create options-panel element
+  if (!document.querySelector('options-panel')) {
+    const panel = document.createElement('options-panel');
+    document.body.appendChild(panel);
+  }
+
+  console.log('[engine] Bootstrapped DOM from window.MOCKUP');
+}
+
 // --- Config Loading ---
 function loadConfig() {
+  // window.MOCKUP data file format (two-file architecture)
+  if (window.MOCKUP && window.MOCKUP.config) {
+    console.log('[engine] Loaded config from window.MOCKUP');
+    return window.MOCKUP.config;
+  }
+  // Inline JSON config (single-file legacy)
   const jsonTag = document.querySelector('#mockup-config');
   if (jsonTag) {
     try {
@@ -2427,7 +2513,7 @@ function loadConfig() {
     console.log('[engine] Loaded config from window.CONFIG (legacy mode)');
     return window.CONFIG;
   }
-  throw new Error('[engine] No CONFIG found. Add <script type="application/json" id="mockup-config"> or define window.CONFIG.');
+  throw new Error('[engine] No CONFIG found. Use window.MOCKUP, <script id="mockup-config">, or window.CONFIG.');
 }
 
 function validateConfig(config) {
@@ -2459,6 +2545,7 @@ function generateApplyOptions(config) {
 }
 
 // --- Boot ---
+bootstrapFromMockup();
 const CONFIG = loadConfig();
 validateConfig(CONFIG);
 window.CONFIG = CONFIG;
