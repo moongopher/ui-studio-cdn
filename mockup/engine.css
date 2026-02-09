@@ -273,6 +273,38 @@ body {
 .mt-compare-sync-label input {
   accent-color: var(--c-primary);
 }
+.mt-compare-col-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.mt-compare-col-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--t-fast);
+  line-height: 1;
+}
+.mt-compare-col-btn:hover {
+  border-color: var(--c-text-muted);
+  color: var(--c-text-2);
+}
+.mt-compare-col-display {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-text-2);
+  min-width: 20px;
+  text-align: center;
+}
 .mt-compare-close-btn {
   padding: var(--sp-2) var(--sp-4);
   border: 1px solid var(--c-border-mid);

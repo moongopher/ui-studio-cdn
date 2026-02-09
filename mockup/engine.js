@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.9';
+const ENGINE_VERSION = '0.10';
 
 // --- Light DOM helpers for applyOptions ---
 function toggle(elementId, show) {
@@ -2598,6 +2598,33 @@ const CompareMode = {
   cells: [],
   overlayEl: null,
   _escHandler: null,
+  colCount: null,
+
+  getDefaultColCount() {
+    const w = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
+    if (w >= 1600) return 4;
+    if (w >= 1100) return 3;
+    if (w >= 700) return 2;
+    return 1;
+  },
+
+  loadColCount() {
+    const saved = localStorage.getItem(CONFIG.storageKey + '-compare-cols');
+    return saved ? parseInt(saved, 10) : null;
+  },
+
+  saveColCount() {
+    if (this.colCount) localStorage.setItem(CONFIG.storageKey + '-compare-cols', this.colCount);
+  },
+
+  applyColCount(grid) {
+    if (!this.colCount) this.colCount = this.loadColCount() || this.getDefaultColCount();
+    grid.style.gridTemplateColumns = `repeat(${this.colCount}, 1fr)`;
+  },
+
+  updateColCountDisplay() {
+    if (this._colCountDisplay) this._colCountDisplay.textContent = this.colCount;
+  },
 
   open(optId) {
     if (this.isOpen) {
@@ -2671,6 +2698,7 @@ const CompareMode = {
     this.optionId = null;
     this.option = null;
     this.cells = [];
+    this._colCountDisplay = null;
   },
 
   pick(key) {
@@ -2734,6 +2762,25 @@ const CompareMode = {
     syncLabel.appendChild(document.createTextNode('Sync zoom'));
     toolbar.appendChild(syncLabel);
 
+    // Column count controls
+    const colControls = document.createElement('div');
+    colControls.className = 'mt-compare-col-controls';
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'mt-compare-col-btn';
+    minusBtn.textContent = '−';
+    minusBtn.title = 'Fewer columns';
+    const colDisplay = document.createElement('span');
+    colDisplay.className = 'mt-compare-col-display';
+    this._colCountDisplay = colDisplay;
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'mt-compare-col-btn';
+    plusBtn.textContent = '+';
+    plusBtn.title = 'More columns';
+    colControls.appendChild(minusBtn);
+    colControls.appendChild(colDisplay);
+    colControls.appendChild(plusBtn);
+    toolbar.appendChild(colControls);
+
     const closeBtn = document.createElement('button');
     closeBtn.className = 'mt-compare-close-btn';
     closeBtn.textContent = 'Close';
@@ -2746,9 +2793,19 @@ const CompareMode = {
     syncCb.addEventListener('change', (e) => { this.syncZoom = e.target.checked; });
     closeBtn.addEventListener('click', () => this.close());
 
+    // Column count handlers
+    minusBtn.addEventListener('click', () => {
+      if (this.colCount > 1) { this.colCount--; this.saveColCount(); this.applyColCount(grid); this.updateColCountDisplay(); }
+    });
+    plusBtn.addEventListener('click', () => {
+      if (this.colCount < 8) { this.colCount++; this.saveColCount(); this.applyColCount(grid); this.updateColCountDisplay(); }
+    });
+
     // Grid
     const grid = document.createElement('div');
     grid.className = 'mt-compare-grid';
+    this.applyColCount(grid);
+    this.updateColCountDisplay();
     overlay.appendChild(grid);
 
     this.cells = [];
@@ -2803,6 +2860,25 @@ const CompareMode = {
             const varEl = freshClone.querySelector(`#${CSS.escape(targetEl + '-' + vk)}`);
             if (varEl) varEl.style.display = (vk === key) ? '' : 'none';
           });
+
+          // baseHtml: wrap variant content in shared layout
+          if (opt.baseHtml) {
+            const baseContainer = document.createElement('div');
+            baseContainer.innerHTML = opt.baseHtml;
+            const slot = baseContainer.querySelector('[data-variant]');
+            if (slot) {
+              const visibleVariant = freshClone.querySelector(`#${CSS.escape(targetEl + '-' + key)}`);
+              if (visibleVariant) {
+                while (visibleVariant.firstChild) slot.appendChild(visibleVariant.firstChild);
+                slot.removeAttribute('data-variant');
+              }
+            }
+            const targetInClone = freshClone.querySelector(`#${CSS.escape(targetEl)}`);
+            if (targetInClone) {
+              targetInClone.innerHTML = '';
+              while (baseContainer.firstChild) targetInClone.appendChild(baseContainer.firstChild);
+            }
+          }
         }
 
         // Strip view title/description (repeated in every cell)
@@ -3288,6 +3364,27 @@ function generateApplyOptions(config) {
 // --- Boot ---
 bootstrapFromMockup();
 const CONFIG = loadConfig();
+
+// Apply defaults for omitted fields (reduces agent output tokens)
+if (!CONFIG.prompt) {
+  CONFIG.prompt = {
+    withNotes: {
+      preamble: "Here are my selections from the mockup",
+      selectedHeading: "I want these options",
+      rejectedHeading: "I reject these options",
+      footer: "Update mockup with my notes. For each note create multiple variations for me to choose from."
+    },
+    withoutNotes: {
+      preamble: "Implement this:",
+      selectedHeading: "Selected",
+      rejectedHeading: "Rejected",
+      footer: ""
+    }
+  };
+}
+if (CONFIG.combos === undefined) CONFIG.combos = [];
+if (CONFIG.compareOnly === undefined) CONFIG.compareOnly = true;
+
 validateConfig(CONFIG);
 window.CONFIG = CONFIG;
 
