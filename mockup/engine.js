@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.8';
+const ENGINE_VERSION = '0.9';
 
 // --- Light DOM helpers for applyOptions ---
 function toggle(elementId, show) {
@@ -102,7 +102,13 @@ function initTabs() {
     btn.className = 'mt-tab' + (document.getElementById('view-' + v.id)?.classList.contains('active') ? ' active' : '');
     btn.textContent = v.label;
     btn.dataset.view = v.id;
-    btn.addEventListener('click', () => switchView(v.id));
+    btn.addEventListener('click', () => {
+      switchView(v.id);
+      if (CONFIG.compareOnly) {
+        const firstOpt = CONFIG.options.find(o => o.target && o.target.view === v.id);
+        if (firstOpt) CompareMode.open(firstOpt.id);
+      }
+    });
     viewTabs.appendChild(btn);
   });
 }
@@ -229,6 +235,9 @@ class OptionsPanel extends HTMLElement {
             <div class="guide-generate-card">
               <div class="guide-generate-label">+ Generate more variants</div>
               <div class="guide-generate-hint">Describe what you want</div>
+            </div>
+            <div class="guide-skip-card" data-gv-key="__skip__">
+              <div class="guide-variant-label">Don\u2019t include</div>
             </div>
           </div>
           <div class="guide-notes-section" style="display:none">
@@ -771,18 +780,17 @@ class OptionsPanel extends HTMLElement {
     }
     .guide-nav-next:hover { background: var(--c-primary-hover); }
     /* --- Guide Skip Card --- */
-    .guide-skip-card { border: 2px dashed var(--c-border-mid); }
+    .guide-skip-card {
+      border: 2px solid var(--c-border);
+      background: transparent;
+      margin-top: var(--sp-2);
+    }
     .guide-skip-card:hover {
       border-color: var(--c-danger);
-      background: var(--c-danger-light);
     }
     .guide-skip-card.selected {
       border-color: var(--c-danger);
       background: var(--c-danger-light);
-      border-style: solid;
-    }
-    .guide-skip-card .guide-variant-label {
-      color: var(--c-text-muted);
     }
     .guide-skip-card.selected .guide-variant-label {
       color: var(--c-danger);
@@ -1592,7 +1600,7 @@ class OptionsPanel extends HTMLElement {
             html += `<button class="variant-btn${currentVariant === key ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-variant-opt="${opt.id}" data-variant-key="${key}">${this.esc(label)}</button>`;
           });
           html += `</div>`;
-          html += `<button class="compare-btn" data-compare-opt="${opt.id}">&#8862; Compare</button>`;
+          if (!CONFIG.compareOnly) html += `<button class="compare-btn" data-compare-opt="${opt.id}">&#8862; Compare</button>`;
         }
 
         html += `</div>`; // end toggle-detail
@@ -1620,7 +1628,12 @@ class OptionsPanel extends HTMLElement {
       body.querySelectorAll('.toggle-row').forEach(row => {
         row.addEventListener('click', (e) => {
           if (e.target.closest('.toggle-switch')) return;
-          row.closest('.toggle-item').classList.toggle('expanded');
+          const item = row.closest('.toggle-item');
+          item.classList.toggle('expanded');
+          if (CONFIG.compareOnly && item.classList.contains('expanded')) {
+            const optId = parseInt(item.dataset.optId);
+            if (optId && CompareMode.optionId !== optId) CompareMode.open(optId);
+          }
         });
       });
 
@@ -1752,6 +1765,7 @@ class OptionsPanel extends HTMLElement {
       }
 
       if (e.key === 'Escape' && CompareMode.isOpen) {
+        if (CONFIG.compareOnly) return;
         e.preventDefault();
         CompareMode.close();
         return;
@@ -2150,9 +2164,11 @@ class OptionsPanel extends HTMLElement {
         const isSelected = decision === 'yes' && currentVariant === key;
         cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-gv-key="${key}"><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
       });
-      // Append Skip card
-      cardsHtml += `<div class="guide-skip-card${decision === 'no' ? ' selected' : ''}" data-gv-key="__skip__"><div class="guide-variant-label">Skip</div></div>`;
       cardsEl.innerHTML = cardsHtml;
+
+      // Update skip card state
+      const skipCard = root.querySelector('.guide-variants-section > .guide-skip-card');
+      skipCard.classList.toggle('selected', decision === 'no');
 
       // Bind variant card clicks and hover preview
       cardsEl.querySelectorAll('.guide-variant-card').forEach(card => {
@@ -2171,7 +2187,6 @@ class OptionsPanel extends HTMLElement {
       });
 
       // Bind Skip card click and hover
-      const skipCard = cardsEl.querySelector('.guide-skip-card');
       skipCard.addEventListener('click', () => {
         this.guideDecide('no');
       });
@@ -2183,14 +2198,16 @@ class OptionsPanel extends HTMLElement {
       skipCard.addEventListener('mouseleave', () => this.endPreview());
 
       // Compare button in guide view
-      let guideCompareBtn = cardsEl.parentElement.querySelector('.guide-compare-btn');
-      if (!guideCompareBtn) {
-        guideCompareBtn = document.createElement('button');
-        guideCompareBtn.className = 'guide-compare-btn';
-        guideCompareBtn.textContent = '\u22A2 Compare';
-        cardsEl.parentElement.appendChild(guideCompareBtn);
+      if (!CONFIG.compareOnly) {
+        let guideCompareBtn = cardsEl.parentElement.querySelector('.guide-compare-btn');
+        if (!guideCompareBtn) {
+          guideCompareBtn = document.createElement('button');
+          guideCompareBtn.className = 'guide-compare-btn';
+          guideCompareBtn.textContent = '\u22A2 Compare';
+          cardsEl.parentElement.appendChild(guideCompareBtn);
+        }
+        guideCompareBtn.onclick = (e) => { e.stopPropagation(); CompareMode.open(opt.id); };
       }
-      guideCompareBtn.onclick = (e) => { e.stopPropagation(); CompareMode.open(opt.id); };
     } else {
       varSection.style.display = 'none';
       const existingBtn = root.querySelector('.guide-compare-btn');
@@ -2203,8 +2220,10 @@ class OptionsPanel extends HTMLElement {
     const notesTa = root.querySelector('.guide-notes-textarea');
     notesTa.value = this.optionNotes[opt.id] || '';
     const hasNotes = !!(this.optionNotes[opt.id] && this.optionNotes[opt.id].trim());
-    genCard.classList.toggle('active', hasNotes);
-    notesSection.style.display = hasNotes ? '' : 'none';
+    const isSkipped = decision === 'no';
+    genCard.classList.toggle('active', hasNotes && !isSkipped);
+    genCard.style.display = isSkipped ? 'none' : '';
+    notesSection.style.display = (hasNotes && !isSkipped) ? '' : 'none';
 
     // Nav
     backBtn.disabled = this.guideStep === 0;
@@ -2235,6 +2254,11 @@ class OptionsPanel extends HTMLElement {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }, 100);
+    }
+
+    // compareOnly: auto-switch compare grid to current guide option
+    if (CONFIG.compareOnly && opt.variants && CompareMode.optionId !== opt.id) {
+      CompareMode.open(opt.id);
     }
 
     this.updateActiveCount();
@@ -2402,6 +2426,7 @@ class OptionsPanel extends HTMLElement {
       document.body.style.paddingRight = '0px';
       if (viewTabs) viewTabs.style.paddingRight = '0';
       panel.classList.remove('collapsed');
+      document.documentElement.style.setProperty('--panel-width', '0px');
       if (this._sheetExpanded) {
         this.classList.remove('mt-sheet-collapsed');
       } else {
@@ -2416,6 +2441,7 @@ class OptionsPanel extends HTMLElement {
       collapseBtn.innerHTML = OptionsPanel.chevron('left');
       document.body.style.paddingRight = '36px';
       if (viewTabs) viewTabs.style.paddingRight = '36px';
+      document.documentElement.style.setProperty('--panel-width', '36px');
       return;
     }
 
@@ -2423,13 +2449,17 @@ class OptionsPanel extends HTMLElement {
     collapseBtn.innerHTML = this.panelCollapsed ? OptionsPanel.chevron('left') : OptionsPanel.chevron('right');
     this.style.width = this.panelWidth + 'px';
     // Keep body padding narrow when hover-expanded so content doesn't shift
+    const pw = (this.panelCollapsed && !this.hoverExpanded) ? 36 : this.panelWidth;
     if (this.hoverExpanded) {
       document.body.style.paddingRight = '36px';
       if (viewTabs) viewTabs.style.paddingRight = '36px';
     } else {
-      document.body.style.paddingRight = this.panelWidth + 'px';
-      if (viewTabs) viewTabs.style.paddingRight = this.panelWidth + 'px';
+      document.body.style.paddingRight = pw + 'px';
+      if (viewTabs) viewTabs.style.paddingRight = pw + 'px';
     }
+
+    // Expose panel width as CSS custom property for compare overlay
+    document.documentElement.style.setProperty('--panel-width', pw + 'px');
   }
 
   // --- Events ---
@@ -2570,7 +2600,20 @@ const CompareMode = {
   _escHandler: null,
 
   open(optId) {
-    if (this.isOpen) this.close();
+    if (this.isOpen) {
+      if (CONFIG.compareOnly) {
+        // In compareOnly, tear down old grid directly and rebuild
+        this.destroyGrid();
+        document.body.classList.remove('mt-compare-open');
+        if (this._escHandler) {
+          document.removeEventListener('keydown', this._escHandler);
+          this._escHandler = null;
+        }
+        this.isOpen = false;
+      } else {
+        this.close();
+      }
+    }
     const opt = CONFIG.options.find(o => o.id === optId);
     if (!opt || !opt.variants) return;
     this.optionId = optId;
@@ -2591,14 +2634,17 @@ const CompareMode = {
 
     this.buildGrid();
 
-    // Position overlay to leave panel visible
-    const panelEl = document.querySelector('options-panel');
-    if (panelEl && this.overlayEl) {
-      const pw = panelEl.offsetWidth;
-      this.overlayEl.style.right = pw + 'px';
-    }
 
     document.body.classList.add('mt-compare-open');
+
+    // Sync highlight when sidebar variant changes
+    this._optionsHandler = (e) => {
+      const key = e.detail.variants[this.optionId];
+      if (key && this.cells) {
+        this.cells.forEach(c => c.element.classList.toggle('mt-compare-picked', c.key === key));
+      }
+    };
+    document.querySelector('options-panel').addEventListener('options-change', this._optionsHandler);
 
     // Escape key handler
     this._escHandler = (e) => {
@@ -2608,12 +2654,18 @@ const CompareMode = {
   },
 
   close() {
+    if (CONFIG.compareOnly) return;
     if (!this.isOpen) return;
     this.destroyGrid();
     document.body.classList.remove('mt-compare-open');
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
+    }
+    if (this._optionsHandler) {
+      const panel = document.querySelector('options-panel');
+      if (panel) panel.removeEventListener('options-change', this._optionsHandler);
+      this._optionsHandler = null;
     }
     this.isOpen = false;
     this.optionId = null;
@@ -2643,14 +2695,17 @@ const CompareMode = {
       // Refresh guide view
       if (panel.panelMode === 'guide') panel.updateGuide();
     }
+    if (CONFIG.compareOnly) {
+      // Highlight selected cell, stay in grid
+      this.cells.forEach(c => c.element.classList.toggle('mt-compare-picked', c.key === key));
+      return;
+    }
     this.close();
   },
 
   buildGrid() {
     const opt = this.option;
     const variantKeys = Object.keys(opt.variants);
-    const cols = Math.ceil(Math.sqrt(variantKeys.length));
-
     // Find the source view's canvas content
     const targetView = opt.target && opt.target.view
       ? document.getElementById('view-' + opt.target.view)
@@ -2682,6 +2737,7 @@ const CompareMode = {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'mt-compare-close-btn';
     closeBtn.textContent = 'Close';
+    if (CONFIG.compareOnly) closeBtn.style.display = 'none';
     toolbar.appendChild(closeBtn);
 
     overlay.appendChild(toolbar);
@@ -2693,9 +2749,6 @@ const CompareMode = {
     // Grid
     const grid = document.createElement('div');
     grid.className = 'mt-compare-grid';
-    const rows = Math.ceil(variantKeys.length / cols);
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     overlay.appendChild(grid);
 
     this.cells = [];
@@ -2718,13 +2771,14 @@ const CompareMode = {
       zoomDisp.textContent = '100%';
       header.appendChild(zoomDisp);
 
-      const pickBtn = document.createElement('button');
-      pickBtn.className = 'mt-compare-pick-btn';
-      pickBtn.textContent = 'Pick';
-      pickBtn.addEventListener('click', () => this.pick(key));
-      header.appendChild(pickBtn);
-
       cell.appendChild(header);
+
+      // Click-to-pick (ignore drags)
+      let downX, downY;
+      cell.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
+      cell.addEventListener('pointerup', (e) => {
+        if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) this.pick(key);
+      });
 
       // Canvas area
       const canvasArea = document.createElement('div');
@@ -2750,6 +2804,11 @@ const CompareMode = {
             if (varEl) varEl.style.display = (vk === key) ? '' : 'none';
           });
         }
+
+        // Strip view title/description (repeated in every cell)
+        freshClone.querySelectorAll(':scope > h1, :scope > h2, :scope > p').forEach(el => {
+          if (!el.querySelector('[id]')) el.remove();
+        });
 
         // Strip IDs to prevent collisions
         freshClone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
@@ -3242,3 +3301,11 @@ initCanvasViews();
 document.querySelector('options-panel').addEventListener('options-change', e => {
   applyFn(e.detail.active, e.detail.variants);
 });
+
+// compareOnly: auto-open compare mode on boot
+if (CONFIG.compareOnly && CONFIG.options.length > 0) {
+  const activeView = document.querySelector('.mt-view.active');
+  const viewId = activeView ? activeView.id.replace('view-', '') : null;
+  const firstOpt = CONFIG.options.find(o => o.target && o.target.view === viewId) || CONFIG.options[0];
+  if (firstOpt) CompareMode.open(firstOpt.id);
+}

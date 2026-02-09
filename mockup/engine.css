@@ -239,14 +239,12 @@ body {
 /* --- Compare Mode Overlay --- */
 .mt-compare-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 340px;
-  bottom: 0;
-  z-index: 10000;
+  inset: 0;
+  z-index: 99;
   background: var(--c-bg);
   display: flex;
   flex-direction: column;
+  padding-right: var(--panel-width, 340px);
 }
 .mt-compare-toolbar {
   display: flex;
@@ -291,13 +289,13 @@ body {
   color: var(--c-text-2);
 }
 .mt-compare-grid {
-  flex: 1;
   min-height: 0;
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   gap: var(--sp-3);
   padding: var(--sp-3);
-  overflow: hidden;
-  grid-auto-rows: 1fr;
+  overflow-y: auto;
+  align-content: start;
 }
 .mt-compare-cell {
   border: 1px solid var(--c-border);
@@ -306,7 +304,15 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0;
+  cursor: pointer;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.mt-compare-cell:hover {
+  border-color: var(--c-primary);
+}
+.mt-compare-cell.mt-compare-picked {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 2px var(--c-primary);
 }
 .mt-compare-cell-header {
   display: flex;
@@ -329,22 +335,8 @@ body {
   min-width: 36px;
   text-align: center;
 }
-.mt-compare-pick-btn {
-  padding: var(--sp-1) var(--sp-3);
-  border: none;
-  border-radius: var(--r-sm);
-  background: var(--c-primary);
-  color: #fff;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--t-fast);
-}
-.mt-compare-pick-btn:hover {
-  background: var(--c-primary-hover);
-}
 .mt-compare-cell-canvas {
-  flex: 1;
+  height: 16rem;
   overflow: hidden;
   position: relative;
   cursor: grab;
@@ -362,16 +354,11 @@ body {
 .mt-compare-cell-content {
   position: relative;
 }
-body.mt-compare-open #mt-views {
-  opacity: 0.3;
-}
+body.mt-compare-open #mt-views,
 body.mt-compare-open #mt-view-tabs {
-  opacity: 0.3;
+  display: none;
 }
 @media (max-width: 768px) {
-  .mt-compare-grid {
-    grid-template-columns: 1fr !important;
-  }
   .mt-compare-cell {
     min-height: 180px;
   }
