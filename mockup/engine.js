@@ -2877,8 +2877,6 @@ class CanvasWorkspace {
       this.panX = centerX - (centerX - this.panX) * zoomDelta;
       this.panY = centerY - (centerY - this.panY) * zoomDelta;
     }
-    // Center content
-    this.centerContent();
     // Clear any scroll offset caused by scrollIntoView
     this.container.scrollTop = 0;
     this.container.scrollLeft = 0;
