@@ -1626,13 +1626,21 @@ class OptionsPanel extends HTMLElement {
     // --- List Mode Events ---
     if (body) {
       body.querySelectorAll('.toggle-row').forEach(row => {
+        // Hover: switch to option's view and preview it
+        row.addEventListener('mouseenter', () => {
+          const optId = parseInt(row.closest('.toggle-item')?.dataset.optId);
+          if (!optId) return;
+          const opt = CONFIG.options.find(o => o.id === optId);
+          if (opt && opt.target && opt.target.view) switchView(opt.target.view);
+        });
+        // Click: expand detail + open compare
         row.addEventListener('click', (e) => {
           if (e.target.closest('.toggle-switch')) return;
           const item = row.closest('.toggle-item');
           item.classList.toggle('expanded');
-          if (CONFIG.compareOnly && item.classList.contains('expanded')) {
-            const optId = parseInt(item.dataset.optId);
-            if (optId && CompareMode.optionId !== optId) CompareMode.open(optId);
+          const optId = parseInt(item.dataset.optId);
+          if (optId && item.classList.contains('expanded')) {
+            CompareMode.open(optId);
           }
         });
       });
@@ -2598,32 +2606,124 @@ const CompareMode = {
   cells: [],
   overlayEl: null,
   _escHandler: null,
-  colCount: null,
+  _layoutSteps: [],
+  _layoutIndex: 0,
 
-  getDefaultColCount() {
-    const w = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
-    if (w >= 1600) return 4;
-    if (w >= 1100) return 3;
-    if (w >= 700) return 2;
-    return 1;
+  /**
+   * Build list of distinct (cols, rows, visible) layouts for N total variants.
+   * Each entry produces a visually different grid. Sorted by visible count ascending.
+   */
+  buildLayoutSteps(totalVariants) {
+    const panelW = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
+    const panelH = window.innerHeight - 48;
+    const isLandscape = panelW >= panelH;
+    const seen = new Set();
+    const steps = [];
+
+    for (let n = 1; n <= totalVariants; n++) {
+      // Pick best cols for this visible count
+      let bestCols = 1, bestScore = -Infinity;
+      for (let c = 1; c <= n; c++) {
+        const r = Math.ceil(n / c);
+        const cellW = panelW / c;
+        const cellH = panelH / r;
+        const cellAspect = cellW / cellH;
+        const score = -Math.abs(Math.log(cellAspect / (4 / 3)));
+        const bias = isLandscape ? 0.1 * c : -0.1 * c;
+        if (score + bias > bestScore) { bestScore = score + bias; bestCols = c; }
+      }
+      const r = Math.ceil(n / bestCols);
+      const key = bestCols + 'x' + r;
+      if (!seen.has(key)) {
+        seen.add(key);
+        steps.push({ cols: bestCols, rows: r, visible: n });
+      }
+    }
+    return steps;
   },
 
-  loadColCount() {
-    const saved = localStorage.getItem(CONFIG.storageKey + '-compare-cols');
-    return saved ? parseInt(saved, 10) : null;
+  loadLayoutIndex(optId) {
+    const saved = localStorage.getItem(CONFIG.storageKey + '-compare-layout-' + optId);
+    return saved !== null ? parseInt(saved, 10) : null;
   },
 
-  saveColCount() {
-    if (this.colCount) localStorage.setItem(CONFIG.storageKey + '-compare-cols', this.colCount);
+  saveLayoutIndex() {
+    localStorage.setItem(CONFIG.storageKey + '-compare-layout-' + this.optionId, this._layoutIndex);
   },
 
-  applyColCount(grid) {
-    if (!this.colCount) this.colCount = this.loadColCount() || this.getDefaultColCount();
-    grid.style.gridTemplateColumns = `repeat(${this.colCount}, 1fr)`;
+  /**
+   * Auto-pick the best layout step based on content dimensions and screen size.
+   * Prefers showing more variants while keeping content readable (≥40% scale).
+   * Called after grid is in the DOM so content can be measured.
+   */
+  autoPickLayout(grid) {
+    if (!this.cells.length) return;
+    // Measure first cell's actual content bounds (not canvas min-size)
+    const firstContent = this.cells[0].element.querySelector('.mt-compare-cell-content');
+    if (!firstContent) return;
+    const clone = firstContent.firstElementChild;
+    let contentW = 400, contentH = 300;
+    if (clone) {
+      // Temporarily remove canvas min-size to measure intrinsic content
+      const prevMinW = clone.style.minWidth;
+      const prevMinH = clone.style.minHeight;
+      clone.style.minWidth = '0';
+      clone.style.minHeight = '0';
+      // Force layout recalc
+      const intrinsicW = clone.scrollWidth;
+      const intrinsicH = clone.scrollHeight;
+      clone.style.minWidth = prevMinW;
+      clone.style.minHeight = prevMinH;
+      if (intrinsicW > 0) contentW = intrinsicW;
+      if (intrinsicH > 0) contentH = intrinsicH;
+    }
+
+    const toolbar = document.querySelector('.mt-compare-toolbar');
+    const toolbarH = toolbar ? toolbar.offsetHeight : 53;
+    const panelW = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
+    const totalH = window.innerHeight - toolbarH;
+    const padV = 24;
+    const gapSize = 12;
+    const cellBorder = 2;
+    const headerH = 32; // cell header height approx
+
+    let bestIdx = 0; // fallback: 1 panel
+    for (let i = this._layoutSteps.length - 1; i >= 0; i--) {
+      const step = this._layoutSteps[i];
+      const cellW = (panelW - gapSize * (step.cols - 1) - 24) / step.cols; // 24 = grid padding lr
+      const availCellH = (totalH - padV - gapSize * (step.rows - 1) - cellBorder * step.rows) / step.rows - headerH;
+      const scaleX = cellW / contentW;
+      const scaleY = availCellH / contentH;
+      const fitScale = Math.min(scaleX, scaleY);
+      // Accept if content fits at ≥40% scale
+      if (fitScale >= 0.4) {
+        bestIdx = i;
+        break;
+      }
+    }
+    this._layoutIndex = bestIdx;
+    this.applyLayout(grid);
+    this.updateLayoutDisplay();
   },
 
-  updateColCountDisplay() {
-    if (this._colCountDisplay) this._colCountDisplay.textContent = this.colCount;
+  applyLayout(grid) {
+    const step = this._layoutSteps[this._layoutIndex];
+    grid.style.gridTemplateColumns = `repeat(${step.cols}, 1fr)`;
+    const toolbar = document.querySelector('.mt-compare-toolbar');
+    const toolbarH = toolbar ? toolbar.offsetHeight : 53;
+    const padV = 24;  // grid padding: var(--sp-3) top + bottom = 12*2
+    const gap = 12;   // grid gap: var(--sp-3)
+    const cellBorder = 2; // 1px top + 1px bottom border on each .mt-compare-cell
+    const availH = window.innerHeight - toolbarH - padV - (gap * (step.rows - 1)) - (cellBorder * step.rows);
+    const rowH = Math.floor(availH / step.rows);
+    grid.style.gridAutoRows = rowH + 'px';
+  },
+
+  updateLayoutDisplay() {
+    if (this._colCountDisplay) {
+      const step = this._layoutSteps[this._layoutIndex];
+      this._colCountDisplay.textContent = step.cols * step.rows;
+    }
   },
 
   open(optId) {
@@ -2668,7 +2768,11 @@ const CompareMode = {
     this._optionsHandler = (e) => {
       const key = e.detail.variants[this.optionId];
       if (key && this.cells) {
-        this.cells.forEach(c => c.element.classList.toggle('mt-compare-picked', c.key === key));
+        this.cells.forEach(c => {
+          const picked = c.key === key;
+          c.element.classList.toggle('mt-compare-picked', picked);
+          if (picked) c.element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
       }
     };
     document.querySelector('options-panel').addEventListener('options-change', this._optionsHandler);
@@ -2698,6 +2802,7 @@ const CompareMode = {
     this.optionId = null;
     this.option = null;
     this.cells = [];
+    this._focusedCell = null;
     this._colCountDisplay = null;
   },
 
@@ -2762,20 +2867,44 @@ const CompareMode = {
     syncLabel.appendChild(document.createTextNode('Sync zoom'));
     toolbar.appendChild(syncLabel);
 
+    // Zoom controls
+    const zoomControls = document.createElement('div');
+    zoomControls.className = 'mt-compare-zoom-controls';
+    const zoomOut = document.createElement('button');
+    zoomOut.className = 'mt-compare-col-btn';
+    zoomOut.textContent = '−';
+    zoomOut.title = 'Zoom out';
+    const zoomDisplay = document.createElement('span');
+    zoomDisplay.className = 'mt-compare-zoom-display';
+    zoomDisplay.textContent = '100%';
+    const zoomIn = document.createElement('button');
+    zoomIn.className = 'mt-compare-col-btn';
+    zoomIn.textContent = '+';
+    zoomIn.title = 'Zoom in';
+    const zoomReset = document.createElement('button');
+    zoomReset.className = 'mt-compare-col-btn';
+    zoomReset.textContent = '\u27F2';
+    zoomReset.title = 'Reset zoom';
+    zoomControls.appendChild(zoomOut);
+    zoomControls.appendChild(zoomDisplay);
+    zoomControls.appendChild(zoomIn);
+    zoomControls.appendChild(zoomReset);
+    toolbar.appendChild(zoomControls);
+
     // Column count controls
     const colControls = document.createElement('div');
     colControls.className = 'mt-compare-col-controls';
     const minusBtn = document.createElement('button');
     minusBtn.className = 'mt-compare-col-btn';
     minusBtn.textContent = '−';
-    minusBtn.title = 'Fewer columns';
+    minusBtn.title = 'Show fewer';
     const colDisplay = document.createElement('span');
     colDisplay.className = 'mt-compare-col-display';
     this._colCountDisplay = colDisplay;
     const plusBtn = document.createElement('button');
     plusBtn.className = 'mt-compare-col-btn';
     plusBtn.textContent = '+';
-    plusBtn.title = 'More columns';
+    plusBtn.title = 'Show more';
     colControls.appendChild(minusBtn);
     colControls.appendChild(colDisplay);
     colControls.appendChild(plusBtn);
@@ -2790,22 +2919,76 @@ const CompareMode = {
     overlay.appendChild(toolbar);
 
     // Sync toggle
-    syncCb.addEventListener('change', (e) => { this.syncZoom = e.target.checked; });
+    syncCb.addEventListener('change', (e) => {
+      this.syncZoom = e.target.checked;
+      // When turning sync on, sync all cells to the first cell's zoom
+      if (this.syncZoom && this.cells.length > 0) {
+        this.syncZoomToAll(this.cells[0].canvas);
+        zoomDisplay.textContent = `${Math.round(this.cells[0].canvas.zoom * 100)}%`;
+      }
+    });
     closeBtn.addEventListener('click', () => this.close());
 
-    // Column count handlers
+    // Zoom controls — affect all cells when sync on, focused cell when off
+    const applyZoomAction = (fn) => {
+      if (this.syncZoom) {
+        this.cells.forEach(c => fn(c.canvas));
+      } else {
+        const target = this._focusedCell || this.cells[0];
+        if (target) fn(target.canvas);
+      }
+      const displayCell = this.syncZoom ? this.cells[0] : (this._focusedCell || this.cells[0]);
+      if (displayCell) {
+        zoomDisplay.textContent = `${Math.round(displayCell.canvas.zoom * 100)}%`;
+      }
+    };
+    zoomOut.addEventListener('click', () => {
+      applyZoomAction(c => c.setZoom(c.zoom - 0.1));
+    });
+    zoomIn.addEventListener('click', () => {
+      applyZoomAction(c => c.setZoom(c.zoom + 0.1));
+    });
+    zoomReset.addEventListener('click', () => {
+      applyZoomAction(c => c.reset());
+    });
+
+    // Layout steps — precompute distinct layouts for this variant count
+    this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
+    const savedIdx = this.loadLayoutIndex(this.optionId);
+    this._autoLayout = (savedIdx === null); // auto-pick if no manual override
+    if (savedIdx !== null && savedIdx >= 0 && savedIdx < this._layoutSteps.length) {
+      this._layoutIndex = savedIdx;
+    } else {
+      // Temporary: show all variants, autoPickLayout will adjust after DOM append
+      this._layoutIndex = this._layoutSteps.length - 1;
+    }
+
+    // Layout handlers
     minusBtn.addEventListener('click', () => {
-      if (this.colCount > 1) { this.colCount--; this.saveColCount(); this.applyColCount(grid); this.updateColCountDisplay(); }
+      if (this._layoutIndex <= 0) return;
+      this._layoutIndex--; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
     plusBtn.addEventListener('click', () => {
-      if (this.colCount < 8) { this.colCount++; this.saveColCount(); this.applyColCount(grid); this.updateColCountDisplay(); }
+      if (this._layoutIndex >= this._layoutSteps.length - 1) return;
+      this._layoutIndex++; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
 
     // Grid
     const grid = document.createElement('div');
     grid.className = 'mt-compare-grid';
-    this.applyColCount(grid);
-    this.updateColCountDisplay();
+    this.applyLayout(grid);
+    this.updateLayoutDisplay();
+    this._resizeHandler = () => {
+      // Recompute layout steps on resize (screen orientation may change)
+      const oldVisible = this._layoutSteps[this._layoutIndex].visible;
+      this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
+      // Find closest step to previous visible count
+      this._layoutIndex = this._layoutSteps.findIndex(s => s.visible >= oldVisible);
+      if (this._layoutIndex < 0) this._layoutIndex = this._layoutSteps.length - 1;
+      this.applyLayout(grid);
+      this.updateLayoutDisplay();
+    };
+    window.addEventListener('resize', this._resizeHandler);
     overlay.appendChild(grid);
 
     this.cells = [];
@@ -2899,18 +3082,31 @@ const CompareMode = {
       grid.appendChild(cell);
 
       // Create CompareCanvas instance
+      const cellObj = { key, label, canvas: null, element: cell };
       const cc = new CompareCanvas(cell, (source) => {
+        this._focusedCell = cellObj;
         if (this.syncZoom) this.syncZoomToAll(source);
+        zoomDisplay.textContent = `${Math.round(source.zoom * 100)}%`;
       });
-      this.cells.push({ key, label, canvas: cc, element: cell });
+      cellObj.canvas = cc;
+      this.cells.push(cellObj);
     });
 
     document.body.appendChild(overlay);
     this.overlayEl = overlay;
+
+    // Auto-pick best layout based on content size (only if no manual override saved)
+    if (this._autoLayout) {
+      this.autoPickLayout(grid);
+    }
   },
 
   destroyGrid() {
     this.cells.forEach(c => c.canvas.destroy());
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
     if (this.overlayEl) {
       this.overlayEl.remove();
       this.overlayEl = null;

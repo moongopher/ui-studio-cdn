@@ -7,8 +7,8 @@
   --sp-5: 20px;  --sp-6: 24px;  --sp-8: 32px;  --sp-10: 40px;  --sp-12: 48px;
 
   /* Type */
-  --text-xs: 11px;  --text-sm: 12px;  --text-base: 13px;
-  --text-md: 14px;  --text-lg: 16px;
+  --text-xs: 12px;  --text-sm: 13px;  --text-base: 14px;
+  --text-md: 15px;  --text-lg: 18px;
 
   /* Colors */
   --c-primary: #2563eb;  --c-primary-hover: #1d4ed8;
@@ -273,6 +273,17 @@ body {
 .mt-compare-sync-label input {
   accent-color: var(--c-primary);
 }
+.mt-compare-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.mt-compare-zoom-display {
+  font-size: var(--text-sm);
+  color: var(--c-text-2);
+  min-width: 42px;
+  text-align: center;
+}
 .mt-compare-col-controls {
   display: flex;
   align-items: center;
@@ -323,7 +334,6 @@ body {
 .mt-compare-grid {
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   gap: var(--sp-3);
   padding: var(--sp-3);
   overflow-y: auto;
@@ -368,7 +378,8 @@ body {
   text-align: center;
 }
 .mt-compare-cell-canvas {
-  height: 16rem;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
   cursor: grab;
