@@ -336,7 +336,7 @@ class OptionsPanel extends HTMLElement {
                 <div class="help-info-label">Background Color</div>
                 <div class="help-info-value">
                   <div class="help-bg-color-row">
-                    <input type="color" class="help-bg-color-input" value="#f5f5f5">
+                    <input type="color" class="help-bg-color-input" value="#f3f4f6">
                     <button class="help-bg-color-reset">Reset</button>
                   </div>
                 </div>
@@ -2052,7 +2052,7 @@ class OptionsPanel extends HTMLElement {
     const colorReset = this.shadowRoot.querySelector('.help-bg-color-reset');
     if (colorReset) {
       colorReset.addEventListener('click', () => {
-        const def = '#f5f5f5';
+        const def = '#f3f4f6';
         if (colorInput) colorInput.value = def;
         bgTargets().forEach(el => {
           el.style.setProperty('--bg-color', def);
@@ -2178,7 +2178,7 @@ class OptionsPanel extends HTMLElement {
 
     // Color input
     const colorInput = root.querySelector('.help-bg-color-input');
-    if (colorInput) colorInput.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color') || '#f5f5f5';
+    if (colorInput) colorInput.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color') || '#f3f4f6';
 
     // Blend mode select
     const blendSelect = root.querySelector('.help-bg-blend-select');

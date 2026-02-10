@@ -88,7 +88,7 @@ body {
   overflow: hidden;
   height: 100%;
   --bg-size: 16px;
-  --bg-color: #f5f5f5;
+  --bg-color: var(--c-surface-alt);
   --bg-opacity: 1;
   --bg-blend: normal;
   background-color: var(--bg-color);
@@ -111,7 +111,7 @@ body {
   z-index: 1;
 }
 .mt-bg-checker::before {
-  background-image: conic-gradient(#ddd 25%, transparent 25% 50%, #ddd 50% 75%, transparent 75%);
+  background-image: conic-gradient(var(--c-border) 25%, transparent 25% 50%, var(--c-border) 50% 75%, transparent 75%);
   background-size: calc(var(--bg-size) * 2) calc(var(--bg-size) * 2);
 }
 .mt-bg-grid::before {
@@ -120,19 +120,19 @@ body {
       0deg,
       transparent,
       transparent calc(var(--bg-size) - 1px),
-      #ccc calc(var(--bg-size) - 1px),
+      var(--c-toggle-off) calc(var(--bg-size) - 1px),
       #ccc var(--bg-size)
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
       transparent calc(var(--bg-size) - 1px),
-      #ccc calc(var(--bg-size) - 1px),
+      var(--c-toggle-off) calc(var(--bg-size) - 1px),
       #ccc var(--bg-size)
     );
 }
 .mt-bg-dots::before {
-  background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--c-toggle-off) 1px, transparent 1px);
   background-size: var(--bg-size) var(--bg-size);
 }
 
@@ -378,6 +378,7 @@ body {
   padding: var(--sp-3);
   scroll-padding: var(--sp-3);
   overflow-y: auto;
+  background: var(--c-surface);
   align-content: start;
 }
 .mt-compare-cell {
@@ -425,7 +426,7 @@ body {
   position: relative;
   cursor: grab;
   --bg-size: 16px;
-  --bg-color: #f5f5f5;
+  --bg-color: var(--c-surface-alt);
   --bg-opacity: 1;
   --bg-blend: normal;
   background-color: var(--bg-color);
