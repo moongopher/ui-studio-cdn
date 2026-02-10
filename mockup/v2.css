@@ -39,28 +39,41 @@
 .mt-compare-sync-label input {
   accent-color: var(--c-primary);
 }
-.mt-compare-zoom-controls {
-  display: flex;
+.mt-compare-btn-group {
+  display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 2px;
+  gap: 0;
+}
+.mt-compare-btn-group .mt-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--c-border);
+  margin: 0 2px;
 }
 .mt-compare-zoom-display {
   font-size: var(--text-sm);
   color: var(--c-text-2);
-  min-width: 42px;
+  min-width: 48px;
+  text-align: center;
+  font-weight: 500;
+}
+.mt-compare-col-display {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-text-2);
+  min-width: 40px;
   text-align: center;
 }
-.mt-compare-col-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
 .mt-compare-col-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--c-border-mid);
-  border-radius: var(--r-sm);
-  background: var(--c-surface);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: calc(var(--r-md) - 2px);
+  background: transparent;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--c-text-muted);
@@ -68,19 +81,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--t-fast);
+  transition: background var(--t-fast), color var(--t-fast);
   line-height: 1;
 }
 .mt-compare-col-btn:hover {
-  border-color: var(--c-text-muted);
+  background: var(--c-surface);
   color: var(--c-text-2);
-}
-.mt-compare-col-display {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--c-text-2);
-  min-width: 20px;
-  text-align: center;
 }
 .mt-compare-close-btn {
   padding: var(--sp-2) var(--sp-4);

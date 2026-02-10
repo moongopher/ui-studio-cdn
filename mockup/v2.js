@@ -235,7 +235,8 @@ const CompareMode = {
   updateLayoutDisplay() {
     if (this._colCountDisplay) {
       const step = this._layoutSteps[this._layoutIndex];
-      this._colCountDisplay.textContent = step.cols * step.rows;
+      const total = step.cols * step.rows;
+      this._colCountDisplay.textContent = total + ' card' + (total !== 1 ? 's' : '');
     }
   },
 
@@ -367,8 +368,8 @@ const CompareMode = {
     syncLabel.appendChild(document.createTextNode('Sync zoom'));
     toolbar.appendChild(syncLabel);
 
-    const zoomControls = document.createElement('div');
-    zoomControls.className = 'mt-compare-zoom-controls';
+    const zoomGroup = document.createElement('div');
+    zoomGroup.className = 'mt-compare-btn-group';
     const zoomOut = document.createElement('button');
     zoomOut.className = 'mt-compare-col-btn';
     zoomOut.textContent = '\u2212';
@@ -380,33 +381,36 @@ const CompareMode = {
     zoomIn.className = 'mt-compare-col-btn';
     zoomIn.textContent = '+';
     zoomIn.title = 'Zoom in';
+    const zoomSep = document.createElement('div');
+    zoomSep.className = 'mt-sep';
     const zoomReset = document.createElement('button');
     zoomReset.className = 'mt-compare-col-btn';
     zoomReset.textContent = '\u27F2';
     zoomReset.title = 'Reset zoom';
-    zoomControls.appendChild(zoomOut);
-    zoomControls.appendChild(zoomDisplay);
-    zoomControls.appendChild(zoomIn);
-    zoomControls.appendChild(zoomReset);
-    toolbar.appendChild(zoomControls);
+    zoomGroup.appendChild(zoomOut);
+    zoomGroup.appendChild(zoomDisplay);
+    zoomGroup.appendChild(zoomIn);
+    zoomGroup.appendChild(zoomSep);
+    zoomGroup.appendChild(zoomReset);
+    toolbar.appendChild(zoomGroup);
 
-    const colControls = document.createElement('div');
-    colControls.className = 'mt-compare-col-controls';
+    const colGroup = document.createElement('div');
+    colGroup.className = 'mt-compare-btn-group';
     const minusBtn = document.createElement('button');
     minusBtn.className = 'mt-compare-col-btn';
     minusBtn.textContent = '\u2212';
-    minusBtn.title = 'Show fewer';
+    minusBtn.title = 'Fewer columns';
     const colDisplay = document.createElement('span');
     colDisplay.className = 'mt-compare-col-display';
     this._colCountDisplay = colDisplay;
     const plusBtn = document.createElement('button');
     plusBtn.className = 'mt-compare-col-btn';
     plusBtn.textContent = '+';
-    plusBtn.title = 'Show more';
-    colControls.appendChild(minusBtn);
-    colControls.appendChild(colDisplay);
-    colControls.appendChild(plusBtn);
-    toolbar.appendChild(colControls);
+    plusBtn.title = 'More columns';
+    colGroup.appendChild(minusBtn);
+    colGroup.appendChild(colDisplay);
+    colGroup.appendChild(plusBtn);
+    toolbar.appendChild(colGroup);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'mt-compare-close-btn';
