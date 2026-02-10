@@ -1598,6 +1598,11 @@ class OptionsPanel extends HTMLElement {
       align-items: center;
       justify-content: center;
       padding: var(--sp-4);
+      opacity: 1;
+      transition: opacity 300ms ease;
+    }
+    .copy-preview-overlay.fading {
+      opacity: 0;
     }
     .copy-preview-backdrop {
       position: absolute;
@@ -2389,10 +2394,7 @@ class OptionsPanel extends HTMLElement {
       navigator.clipboard.writeText(text).then(() => {
         copyBtn.textContent = 'Copied!';
         copyBtn.classList.add('copied');
-        setTimeout(() => {
-          copyBtn.textContent = 'Copy to Clipboard';
-          copyBtn.classList.remove('copied');
-        }, 1500);
+        setTimeout(() => this.closeCopyPreview(), 1000);
       });
     });
 
@@ -2415,7 +2417,12 @@ class OptionsPanel extends HTMLElement {
   }
 
   closeCopyPreview() {
-    this.shadowRoot.querySelector('.copy-preview-overlay').style.display = 'none';
+    const overlay = this.shadowRoot.querySelector('.copy-preview-overlay');
+    overlay.classList.add('fading');
+    overlay.addEventListener('transitionend', () => {
+      overlay.style.display = 'none';
+      overlay.classList.remove('fading');
+    }, { once: true });
     this._copyPreviewOpen = false;
   }
 
