@@ -94,13 +94,14 @@ body {
   background-color: var(--bg-color);
 }
 .mt-view.active { display: block; }
-.mt-view.mt-bg-sm { --bg-size: 10px; }
-.mt-view.mt-bg-md { --bg-size: 16px; }
-.mt-view.mt-bg-lg { --bg-size: 24px; }
-.mt-view.mt-bg-xl { --bg-size: 40px; }
-.mt-view.mt-bg-checker::before,
-.mt-view.mt-bg-grid::before,
-.mt-view.mt-bg-dots::before {
+/* --- Canvas Background Patterns (shared by views + compare cells) --- */
+.mt-bg-sm { --bg-size: 10px; }
+.mt-bg-md { --bg-size: 16px; }
+.mt-bg-lg { --bg-size: 24px; }
+.mt-bg-xl { --bg-size: 40px; }
+.mt-bg-checker::before,
+.mt-bg-grid::before,
+.mt-bg-dots::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -109,11 +110,11 @@ body {
   pointer-events: none;
   z-index: 1;
 }
-.mt-view.mt-bg-checker::before {
+.mt-bg-checker::before {
   background-image: conic-gradient(#ddd 25%, transparent 25% 50%, #ddd 50% 75%, transparent 75%);
   background-size: calc(var(--bg-size) * 2) calc(var(--bg-size) * 2);
 }
-.mt-view.mt-bg-grid::before {
+.mt-bg-grid::before {
   background:
     repeating-linear-gradient(
       0deg,
@@ -130,7 +131,7 @@ body {
       #ccc var(--bg-size)
     );
 }
-.mt-view.mt-bg-dots::before {
+.mt-bg-dots::before {
   background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
   background-size: var(--bg-size) var(--bg-size);
 }
@@ -423,6 +424,11 @@ body {
   overflow: hidden;
   position: relative;
   cursor: grab;
+  --bg-size: 16px;
+  --bg-color: #f5f5f5;
+  --bg-opacity: 1;
+  --bg-blend: normal;
+  background-color: var(--bg-color);
 }
 .mt-compare-cell-canvas:active {
   cursor: grabbing;
@@ -433,6 +439,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 2;
 }
 .mt-compare-cell-content {
   position: relative;

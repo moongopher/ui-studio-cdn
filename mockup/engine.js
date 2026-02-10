@@ -1991,9 +1991,10 @@ class OptionsPanel extends HTMLElement {
     }
 
     // Canvas background picker
-    // Helper: apply bg classes to all .mt-view elements
+    // Helper: apply bg classes to all canvas bg targets (views + compare cells)
+    const bgTargets = () => document.querySelectorAll('.mt-view, .mt-compare-cell-canvas');
     const applyBgClasses = (bg, size) => {
-      document.querySelectorAll('.mt-view').forEach(el => {
+      bgTargets().forEach(el => {
         el.classList.remove('mt-bg-checker', 'mt-bg-grid', 'mt-bg-dots', 'mt-bg-none', 'mt-bg-sm', 'mt-bg-md', 'mt-bg-lg', 'mt-bg-xl');
         el.classList.add('mt-bg-' + bg);
         if (bg !== 'none') el.classList.add('mt-bg-' + size);
@@ -2030,7 +2031,7 @@ class OptionsPanel extends HTMLElement {
     if (opacitySlider) {
       opacitySlider.addEventListener('input', () => {
         const val = opacitySlider.value;
-        document.querySelectorAll('.mt-view').forEach(el => {
+        bgTargets().forEach(el => {
           el.style.setProperty('--bg-opacity', val);
         });
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-opacity', val);
@@ -2042,7 +2043,7 @@ class OptionsPanel extends HTMLElement {
     if (colorInput) {
       colorInput.addEventListener('input', () => {
         const val = colorInput.value;
-        document.querySelectorAll('.mt-view').forEach(el => {
+        bgTargets().forEach(el => {
           el.style.setProperty('--bg-color', val);
         });
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-color', val);
@@ -2053,7 +2054,7 @@ class OptionsPanel extends HTMLElement {
       colorReset.addEventListener('click', () => {
         const def = '#f5f5f5';
         if (colorInput) colorInput.value = def;
-        document.querySelectorAll('.mt-view').forEach(el => {
+        bgTargets().forEach(el => {
           el.style.setProperty('--bg-color', def);
         });
         localStorage.removeItem(CONFIG.storageKey + '-canvas-bg-color');
@@ -2065,7 +2066,7 @@ class OptionsPanel extends HTMLElement {
     if (blendSelect) {
       blendSelect.addEventListener('change', () => {
         const blend = blendSelect.value;
-        document.querySelectorAll('.mt-view').forEach(el => {
+        bgTargets().forEach(el => {
           el.style.setProperty('--bg-blend', blend);
         });
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-blend', blend);
@@ -2083,7 +2084,7 @@ class OptionsPanel extends HTMLElement {
         const canvasCfg = CONFIG.canvas || {};
         const defaultBg = canvasCfg.grid === false ? 'none' : 'checker';
         applyBgClasses(defaultBg, 'md');
-        document.querySelectorAll('.mt-view').forEach(el => {
+        bgTargets().forEach(el => {
           el.style.removeProperty('--bg-color');
           el.style.removeProperty('--bg-opacity');
           el.style.removeProperty('--bg-blend');
@@ -3357,9 +3358,17 @@ const CompareMode = {
         if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) this.pick(key);
       });
 
-      // Canvas area
+      // Canvas area (apply saved bg settings)
       const canvasArea = document.createElement('div');
-      canvasArea.className = 'mt-compare-cell-canvas';
+      const _savedBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || ((CONFIG.canvas || {}).grid === false ? 'none' : 'checker');
+      const _savedSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
+      const _savedColor = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color');
+      const _savedOpacity = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity');
+      const _savedBlend = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend');
+      canvasArea.className = 'mt-compare-cell-canvas mt-bg-' + _savedBg + (_savedBg !== 'none' ? ' mt-bg-' + _savedSize : '');
+      if (_savedColor) canvasArea.style.setProperty('--bg-color', _savedColor);
+      if (_savedOpacity && _savedOpacity !== '1') canvasArea.style.setProperty('--bg-opacity', _savedOpacity);
+      if (_savedBlend) canvasArea.style.setProperty('--bg-blend', _savedBlend);
       const viewport = document.createElement('div');
       viewport.className = 'mt-compare-cell-viewport';
       const content = document.createElement('div');
