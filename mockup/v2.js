@@ -41,7 +41,18 @@ class CompareCanvas {
     if (this.zoomDisplay) this.zoomDisplay.textContent = `${Math.round(this.zoom * 100)}%`;
   }
 
-  reset() { this.zoom = 1.0; this.panX = 0; this.panY = 0; this.updateTransform(); }
+  reset() { this.zoom = 1.0; this.panX = 0; this.panY = 0; this.updateTransform(); this.centerContent(); }
+
+  centerContent() {
+    const canvasRect = this.canvas.getBoundingClientRect();
+    const contentEl = this.viewport.querySelector('.mt-compare-cell-content');
+    if (!contentEl) return;
+    const cw = contentEl.scrollWidth * this.zoom;
+    const ch = contentEl.scrollHeight * this.zoom;
+    this.panX = (canvasRect.width - cw) / 2;
+    this.panY = (canvasRect.height - ch) / 2;
+    this.updateTransform();
+  }
 
   _onWheel(e) {
     if (e.ctrlKey || e.metaKey) {
@@ -558,6 +569,11 @@ const CompareMode = {
     if (this._autoLayout) {
       this.autoPickLayout(grid);
     }
+
+    // Center content in each cell after layout is computed
+    requestAnimationFrame(() => {
+      this.cells.forEach(c => c.canvas.centerContent());
+    });
   },
 
   destroyGrid() {
