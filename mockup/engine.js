@@ -1157,19 +1157,21 @@ class OptionsPanel extends HTMLElement {
       margin-top: var(--sp-1);
     }
 
-    /* --- Notes (in detail) --- */
-    .notes-btn {
+    /* --- Generate Card (in list detail) --- */
+    .list-generate-card {
       font-size: var(--text-xs);
-      padding: var(--sp-1) 10px;
-      border: 1px solid var(--c-border-mid);
+      font-weight: 600;
+      padding: var(--sp-2);
+      border: 2px dashed var(--c-border-mid);
       border-radius: var(--r-sm);
-      background: var(--c-surface);
+      background: transparent;
       cursor: pointer;
-      color: var(--c-text-faint);
+      color: var(--c-text-muted);
+      text-align: center;
       transition: all var(--t-fast);
     }
-    .notes-btn:hover { border-color: var(--c-primary); color: var(--c-primary); }
-    .notes-btn.has-notes {
+    .list-generate-card:hover { border-color: var(--c-primary); color: var(--c-primary); }
+    .list-generate-card.active {
       border-color: var(--c-primary);
       color: var(--c-primary);
       background: var(--c-primary-lighter);
@@ -1832,10 +1834,6 @@ class OptionsPanel extends HTMLElement {
         // Detail section (hidden unless active/expanded)
         html += `<div class="toggle-detail">`;
         html += `<div class="toggle-desc">${this.esc(opt.desc)}</div>`;
-        html += `<div class="toggle-detail-actions">`;
-        html += `<button class="notes-btn${hasNotes ? ' has-notes' : ''}" data-notes-btn="${opt.id}">${hasNotes ? 'Edit Note' : 'Add Note'}</button>`;
-        html += `</div>`;
-        html += `<textarea class="notes-textarea${hasNotes ? ' visible' : ''}" data-notes="${opt.id}" placeholder="Add notes for this option...">${this.esc(noteText)}</textarea>`;
 
         if (hasVariants) {
           html += `<div class="variant-row">`;
@@ -1846,6 +1844,11 @@ class OptionsPanel extends HTMLElement {
           html += `</div>`;
           if (!CONFIG.compareOnly) html += `<button class="compare-btn" data-compare-opt="${opt.id}">&#8862; Compare</button>`;
         }
+
+        html += `<div class="toggle-detail-actions">`;
+        html += `<div class="list-generate-card${hasNotes ? ' active' : ''}" data-generate-card="${opt.id}">+ Generate more variants</div>`;
+        html += `</div>`;
+        html += `<textarea class="notes-textarea${hasNotes ? ' visible' : ''}" data-notes="${opt.id}" placeholder="Describe the variants you want generated...">${this.esc(noteText)}</textarea>`;
 
         html += `</div>`; // end toggle-detail
         html += `</div>`; // end toggle-item
@@ -1869,21 +1872,46 @@ class OptionsPanel extends HTMLElement {
 
     // --- List Mode Events ---
     if (body) {
-      body.querySelectorAll('.toggle-row').forEach(row => {
-        // Hover: switch to option's view and preview it
-        row.addEventListener('mouseenter', () => {
-          const optId = parseInt(row.closest('.toggle-item')?.dataset.optId);
+      body.querySelectorAll('.toggle-item').forEach(item => {
+        // Hover: switch to option's view and update compare display (only if active)
+        item.addEventListener('mouseover', (e) => {
+          // Skip if hovering over interactive elements
+          if (e.target.closest('.variant-btn, .compare-btn, .list-generate-card, .notes-textarea, button, input, textarea')) return;
+          const optId = parseInt(item.dataset.optId);
           if (!optId) return;
           const opt = CONFIG.options.find(o => o.id === optId);
-          if (opt && opt.target && opt.target.view) switchView(opt.target.view);
+          if (opt && opt.target && opt.target.view) {
+            switchView(opt.target.view);
+            // Only update compare display if option is already active
+            if (this.activeOptions.has(optId) && window._engineInterface) {
+              window._engineInterface.open(optId);
+            }
+          }
         });
-        // Click: expand detail + open compare
-        row.addEventListener('click', (e) => {
-          if (e.target.closest('.toggle-switch')) return;
-          const item = row.closest('.toggle-item');
-          item.classList.toggle('expanded');
+
+        // Click: expand detail, activate option, and keep view
+        item.addEventListener('click', (e) => {
+          // Ignore clicks on interactive elements
+          if (e.target.closest('.toggle-switch, .variant-btn, .compare-btn, .list-generate-card, .notes-textarea, button, input, textarea')) return;
+
           const optId = parseInt(item.dataset.optId);
-          if (optId && item.classList.contains('expanded')) {
+          if (!optId) return;
+
+          // Toggle expanded state
+          item.classList.toggle('expanded');
+
+          // Activate the option and keep view
+          const opt = CONFIG.options.find(o => o.id === optId);
+          if (opt) {
+            this.activeOptions.add(optId);
+            if (opt.target && opt.target.view) switchView(opt.target.view);
+            this.syncToggles();
+            this.saveState();
+            this.fireOptionsChange();
+          }
+
+          // Open compare if expanded
+          if (item.classList.contains('expanded')) {
             if (window._engineInterface) window._engineInterface.open(optId);
           }
         });
@@ -1920,9 +1948,10 @@ class OptionsPanel extends HTMLElement {
         });
       });
 
-      body.querySelectorAll('.notes-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const ta = body.querySelector(`textarea[data-notes="${btn.dataset.notesBtn}"]`);
+      body.querySelectorAll('.list-generate-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent toggle-item click
+          const ta = body.querySelector(`textarea[data-notes="${card.dataset.generateCard}"]`);
           ta.classList.toggle('visible');
           if (ta.classList.contains('visible')) ta.focus();
         });
@@ -1933,8 +1962,8 @@ class OptionsPanel extends HTMLElement {
           const id = ta.dataset.notes;
           const val = ta.value.trim();
           if (val) { this.optionNotes[id] = val; } else { delete this.optionNotes[id]; }
-          const btn = body.querySelector(`[data-notes-btn="${id}"]`);
-          if (btn) { btn.textContent = val ? 'Edit Note' : 'Add Note'; btn.classList.toggle('has-notes', !!val); }
+          const card = body.querySelector(`[data-generate-card="${id}"]`);
+          if (card) { card.classList.toggle('active', !!val); }
           const dot = body.querySelector(`.notes-dot[data-dot="${id}"]`);
           if (dot) dot.classList.toggle('visible', !!val);
           this.saveState();
@@ -1942,7 +1971,8 @@ class OptionsPanel extends HTMLElement {
       });
 
       body.querySelectorAll('.variant-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent toggle-item click
           const optId = parseInt(btn.dataset.variantOpt);
           const key = btn.dataset.variantKey;
           this.optionVariants[optId] = key;
@@ -1954,6 +1984,7 @@ class OptionsPanel extends HTMLElement {
         btn.addEventListener('mouseenter', () => {
           const optId = parseInt(btn.dataset.variantOpt);
           const key = btn.dataset.variantKey;
+          // Preview the variant
           const preview = Object.assign({}, this.optionVariants);
           preview[optId] = key;
           this.startPreview(null, preview);
@@ -2853,9 +2884,8 @@ class OptionsPanel extends HTMLElement {
         ta.value = '';
         ta.classList.remove('visible');
       });
-      body.querySelectorAll('.notes-btn').forEach(btn => {
-        btn.textContent = 'Add Note';
-        btn.classList.remove('has-notes');
+      body.querySelectorAll('.list-generate-card').forEach(card => {
+        card.classList.remove('active');
       });
       body.querySelectorAll('.variant-btn').forEach(btn => {
         const optId = parseInt(btn.dataset.variantOpt);
