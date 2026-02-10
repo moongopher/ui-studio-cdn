@@ -1991,6 +1991,15 @@ class OptionsPanel extends HTMLElement {
     }
 
     // Canvas background picker
+    // Helper: apply bg classes to all .mt-view elements
+    const applyBgClasses = (bg, size) => {
+      document.querySelectorAll('.mt-view').forEach(el => {
+        el.classList.remove('mt-bg-checker', 'mt-bg-grid', 'mt-bg-dots', 'mt-bg-none', 'mt-bg-sm', 'mt-bg-md', 'mt-bg-lg', 'mt-bg-xl');
+        el.classList.add('mt-bg-' + bg);
+        if (bg !== 'none') el.classList.add('mt-bg-' + size);
+      });
+    };
+
     const patternRows = this.shadowRoot.querySelectorAll('.help-bg-pattern-row');
     this.shadowRoot.querySelectorAll('.help-bg-picker:not(.help-bg-size-picker) button').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1998,9 +2007,7 @@ class OptionsPanel extends HTMLElement {
         this.shadowRoot.querySelectorAll('.help-bg-picker:not(.help-bg-size-picker) button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const savedSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
-          el.className = 'mt-canvas-content mt-bg-' + bg + (bg !== 'none' ? ' mt-bg-' + savedSize : '');
-        });
+        applyBgClasses(bg, savedSize);
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg', bg);
         patternRows.forEach(r => r.style.display = bg === 'none' ? 'none' : '');
       });
@@ -2013,9 +2020,7 @@ class OptionsPanel extends HTMLElement {
         this.shadowRoot.querySelectorAll('.help-bg-size-picker button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const savedBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || 'checker';
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
-          el.className = 'mt-canvas-content mt-bg-' + savedBg + ' mt-bg-' + size;
-        });
+        applyBgClasses(savedBg, size);
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-size', size);
       });
     });
@@ -2025,7 +2030,7 @@ class OptionsPanel extends HTMLElement {
     if (opacitySlider) {
       opacitySlider.addEventListener('input', () => {
         const val = opacitySlider.value;
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+        document.querySelectorAll('.mt-view').forEach(el => {
           el.style.setProperty('--bg-opacity', val);
         });
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-opacity', val);
@@ -2037,7 +2042,7 @@ class OptionsPanel extends HTMLElement {
     if (colorInput) {
       colorInput.addEventListener('input', () => {
         const val = colorInput.value;
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+        document.querySelectorAll('.mt-view').forEach(el => {
           el.style.setProperty('--bg-color', val);
         });
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-color', val);
@@ -2048,7 +2053,7 @@ class OptionsPanel extends HTMLElement {
       colorReset.addEventListener('click', () => {
         const def = '#f5f5f5';
         if (colorInput) colorInput.value = def;
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+        document.querySelectorAll('.mt-view').forEach(el => {
           el.style.setProperty('--bg-color', def);
         });
         localStorage.removeItem(CONFIG.storageKey + '-canvas-bg-color');
@@ -2060,7 +2065,7 @@ class OptionsPanel extends HTMLElement {
     if (blendSelect) {
       blendSelect.addEventListener('change', () => {
         const blend = blendSelect.value;
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+        document.querySelectorAll('.mt-view').forEach(el => {
           el.style.setProperty('--bg-blend', blend);
         });
         localStorage.setItem(CONFIG.storageKey + '-canvas-bg-blend', blend);
@@ -2075,16 +2080,14 @@ class OptionsPanel extends HTMLElement {
         ['canvas-bg', 'canvas-bg-size', 'canvas-bg-opacity', 'canvas-bg-color', 'canvas-bg-blend'].forEach(k => {
           localStorage.removeItem(prefix + '-' + k);
         });
-        // Apply defaults to all canvases
         const canvasCfg = CONFIG.canvas || {};
         const defaultBg = canvasCfg.grid === false ? 'none' : 'checker';
-        document.querySelectorAll('.mt-canvas-content').forEach(el => {
-          el.className = 'mt-canvas-content mt-bg-' + defaultBg + (defaultBg !== 'none' ? ' mt-bg-md' : '');
+        applyBgClasses(defaultBg, 'md');
+        document.querySelectorAll('.mt-view').forEach(el => {
           el.style.removeProperty('--bg-color');
           el.style.removeProperty('--bg-opacity');
           el.style.removeProperty('--bg-blend');
         });
-        // Re-populate UI
         this.populateHelpDiagnostics();
       });
     }
@@ -3780,16 +3783,19 @@ function initCanvasViews() {
   const savedBlend = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend') || '';
   document.querySelectorAll('.mt-view').forEach(viewEl => {
     const viewId = viewEl.id.replace('view-', '');
+    // Apply background settings to view element
+    viewEl.classList.add('mt-bg-' + savedBg);
+    if (savedBg !== 'none') viewEl.classList.add('mt-bg-' + savedSize);
+    if (savedColor) viewEl.style.setProperty('--bg-color', savedColor);
+    if (savedOpacity !== '1') viewEl.style.setProperty('--bg-opacity', savedOpacity);
+    if (savedBlend) viewEl.style.setProperty('--bg-blend', savedBlend);
     // Wrap existing children in canvas structure
     const viewport = document.createElement('div');
     viewport.className = 'mt-canvas-viewport';
     const content = document.createElement('div');
-    content.className = 'mt-canvas-content mt-bg-' + savedBg + (savedBg !== 'none' ? ' mt-bg-' + savedSize : '');
-    if (savedColor) content.style.setProperty('--bg-color', savedColor);
-    if (savedOpacity !== '1') content.style.setProperty('--bg-opacity', savedOpacity);
-    if (savedBlend) content.style.setProperty('--bg-blend', savedBlend);
+    content.className = 'mt-canvas-content';
     const item = document.createElement('div');
-    item.className = 'mt-canvas-item';
+    item.className = 'mt-canvas-surface';
     while (viewEl.firstChild) item.appendChild(viewEl.firstChild);
     content.appendChild(item);
     viewport.appendChild(content);
