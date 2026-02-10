@@ -93,9 +93,9 @@ function switchView(viewId) {
 // --- View Tabs ---
 function initTabs() {
   const viewTabs = document.getElementById('mt-view-tabs');
-  if (CONFIG.views.length <= 1) {
+  if (CONFIG.views.length <= 1 || CONFIG._originalCompareOnly) {
     viewTabs.classList.add('mt-tabs-hidden');
-    return;
+    if (CONFIG._originalCompareOnly) return;
   }
   CONFIG.views.forEach(v => {
     const btn = document.createElement('button');
@@ -290,7 +290,7 @@ class OptionsPanel extends HTMLElement {
             <button class="help-settings-reset" title="Reset canvas settings to defaults" style="display:none">
               <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M480-400q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0 280q-139 0-241-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Z"/></svg>
             </button>
-            <kbd class="help-modal-dismiss">Esc to close</kbd>
+            <button class="help-modal-dismiss"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg></button>
           </div>
           <div class="help-tab-panel active" data-panel="shortcuts">
             <div class="help-overlay-row">
@@ -390,6 +390,16 @@ class OptionsPanel extends HTMLElement {
                     <option value="color">Color</option>
                     <option value="luminosity">Luminosity</option>
                   </select>
+                </div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">View Mode</div>
+                <div class="help-info-value">
+                  <div class="help-view-mode">
+                    <span class="help-view-mode-label">Normal</span>
+                    <label class="toggle-switch help-view-mode-toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+                    <span class="help-view-mode-label">Compare</span>
+                  </div>
                 </div>
               </div>
               <div class="help-info-item">
@@ -1321,13 +1331,18 @@ class OptionsPanel extends HTMLElement {
       color: var(--c-text);
     }
     .help-modal-dismiss {
-      background: var(--c-surface-alt);
-      border: 1px solid var(--c-border);
+      background: none;
+      border: none;
+      padding: var(--sp-1);
+      color: var(--c-text-muted);
+      cursor: pointer;
+      line-height: 0;
       border-radius: var(--r-sm);
-      padding: 2px 8px;
-      font-size: var(--text-xs);
-      font-family: monospace;
-      color: var(--c-text-faint);
+      transition: all var(--t-fast);
+    }
+    .help-modal-dismiss:hover {
+      color: var(--c-text);
+      background: var(--c-surface-alt);
     }
     .help-tab-panel {
       display: none;
@@ -1474,6 +1489,20 @@ class OptionsPanel extends HTMLElement {
       color: var(--c-text);
       font-size: var(--text-xs);
       cursor: pointer;
+    }
+    .help-view-mode {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+    .help-view-mode-label {
+      font-size: var(--text-xs);
+      color: var(--c-text-muted);
+      transition: color var(--t-fast);
+    }
+    .help-view-mode-label.active {
+      color: var(--c-text);
+      font-weight: 600;
     }
 
     /* --- Drag Handle (mobile bottom sheet) --- */
@@ -1950,6 +1979,7 @@ class OptionsPanel extends HTMLElement {
     });
 
     backdrop.addEventListener('click', () => this.toggleHelpOverlay());
+    this.shadowRoot.querySelector('.help-modal-dismiss').addEventListener('click', () => this.toggleHelpOverlay());
 
     // Tab switching
     this.shadowRoot.querySelectorAll('.help-tab').forEach(tab => {
@@ -2092,6 +2122,33 @@ class OptionsPanel extends HTMLElement {
         this.populateHelpDiagnostics();
       });
     }
+
+    // View mode toggle (Normal ↔ Compare)
+    const viewModeToggle = this.shadowRoot.querySelector('.help-view-mode-toggle input');
+    if (viewModeToggle) {
+      const labels = this.shadowRoot.querySelectorAll('.help-view-mode-label');
+      const updateLabels = (isCompare) => {
+        if (labels[0]) labels[0].classList.toggle('active', !isCompare);
+        if (labels[1]) labels[1].classList.toggle('active', isCompare);
+      };
+      updateLabels(CONFIG.compareOnly);
+      viewModeToggle.checked = CONFIG.compareOnly;
+      viewModeToggle.addEventListener('change', () => {
+        const isCompare = viewModeToggle.checked;
+        updateLabels(isCompare);
+        CONFIG.compareOnly = isCompare;
+        localStorage.setItem(CONFIG.storageKey + '-compare-only', isCompare ? '1' : '0');
+        if (isCompare) {
+          const firstOpt = CONFIG.options.find(o => o.variants);
+          if (firstOpt) CompareMode.open(firstOpt.id);
+        } else {
+          CompareMode.close();
+          // Hide tabs when switching compareOnly mockup to normal mode
+          const viewTabs = document.getElementById('mt-view-tabs');
+          if (viewTabs) viewTabs.classList.add('mt-tabs-hidden');
+        }
+      });
+    }
   }
 
   toggleHelpOverlay() {
@@ -2183,6 +2240,15 @@ class OptionsPanel extends HTMLElement {
     // Blend mode select
     const blendSelect = root.querySelector('.help-bg-blend-select');
     if (blendSelect) blendSelect.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend') || 'normal';
+
+    // View mode toggle
+    const viewModeToggle = root.querySelector('.help-view-mode-toggle input');
+    if (viewModeToggle) {
+      viewModeToggle.checked = CONFIG.compareOnly;
+      const labels = root.querySelectorAll('.help-view-mode-label');
+      if (labels[0]) labels[0].classList.toggle('active', !CONFIG.compareOnly);
+      if (labels[1]) labels[1].classList.toggle('active', CONFIG.compareOnly);
+    }
 
     // File path
     const filePathEl = root.querySelector('.help-info-filepath');
@@ -3193,7 +3259,7 @@ const CompareMode = {
 
     const title = document.createElement('span');
     title.className = 'mt-compare-title';
-    title.textContent = 'Compare: ' + opt.name;
+    title.textContent = opt.name;
     toolbar.appendChild(title);
 
     const syncLabel = document.createElement('label');
@@ -3940,6 +4006,10 @@ if (!CONFIG.prompt) {
 }
 if (CONFIG.combos === undefined) CONFIG.combos = [];
 if (CONFIG.compareOnly === undefined) CONFIG.compareOnly = true;
+CONFIG._originalCompareOnly = CONFIG.compareOnly;
+// Override compareOnly from saved preference
+const savedCompareOnly = localStorage.getItem(CONFIG.storageKey + '-compare-only');
+if (savedCompareOnly !== null) CONFIG.compareOnly = savedCompareOnly === '1';
 
 validateConfig(CONFIG);
 window.CONFIG = CONFIG;
