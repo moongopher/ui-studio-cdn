@@ -44,17 +44,14 @@ class CompareCanvas {
   reset() { this.zoom = 1.0; this.panX = 0; this.panY = 0; this.updateTransform(); }
 
   _onWheel(e) {
-    e.preventDefault();
     if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
       const delta = e.deltaY > 0 ? -1 : 1;
       const rect = this.canvas.getBoundingClientRect();
       this.setZoom(this.zoom + delta * 0.1, e.clientX - rect.left, e.clientY - rect.top);
-    } else {
-      let dx = e.deltaX, dy = e.deltaY;
-      if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
-      this.setPan(this.panX - dx, this.panY - dy);
+      if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
     }
-    if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
+    // No modifier: let event bubble → grid scrolls naturally
   }
 
   _onMouseDown(e) {

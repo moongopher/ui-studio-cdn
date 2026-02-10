@@ -1108,6 +1108,7 @@ class OptionsPanel extends HTMLElement {
       position: absolute;
       transform-origin: top left;
       pointer-events: none;
+      background: #fff;
     }
 
     /* --- Guide Variant "Our Pick" Label --- */
@@ -2983,6 +2984,7 @@ class OptionsPanel extends HTMLElement {
       // Temporarily show this variant for cloning
       const prevDisplay = variantEl.style.display;
       variantEl.style.display = '';
+      variantEl.offsetHeight; // force reflow so scrollWidth/scrollHeight are correct
 
       const clone = variantEl.cloneNode(true);
       clone.removeAttribute('id');
