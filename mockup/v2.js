@@ -97,18 +97,21 @@ class CompareCanvas {
     const ch = contentEl.scrollHeight * this.zoom;
     const canvasW = this.canvas.clientWidth;
     const canvasH = this.canvas.clientHeight;
-    // Check if any part of the content rectangle intersects the canvas
     const visible =
       this.panX + cw > 0 && this.panX < canvasW &&
       this.panY + ch > 0 && this.panY < canvasH;
     if (!visible) {
-      this.viewport.style.transition = 'transform 300ms ease';
-      this.centerContent();
-      this.viewport.addEventListener('transitionend', () => {
-        this.viewport.style.transition = '';
-      }, { once: true });
+      this._animateToCenter();
       if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
     }
+  }
+
+  _animateToCenter() {
+    this.viewport.style.transition = 'transform 300ms ease';
+    this.centerContent();
+    this.viewport.addEventListener('transitionend', () => {
+      this.viewport.style.transition = '';
+    }, { once: true });
   }
 
   destroy() {
@@ -611,13 +614,18 @@ const CompareMode = {
   },
 
   syncZoomToAll(source) {
+    const isAnimating = !!source.viewport.style.transition;
     this.cells.forEach(c => {
       if (c.canvas === source || c.canvas._syncing) return;
       c.canvas._syncing = true;
-      c.canvas.zoom = source.zoom;
-      c.canvas.panX = source.panX;
-      c.canvas.panY = source.panY;
-      c.canvas.updateTransform();
+      if (isAnimating) {
+        c.canvas._animateToCenter();
+      } else {
+        c.canvas.zoom = source.zoom;
+        c.canvas.panX = source.panX;
+        c.canvas.panY = source.panY;
+        c.canvas.updateTransform();
+      }
       c.canvas._syncing = false;
     });
   },
