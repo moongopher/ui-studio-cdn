@@ -272,25 +272,24 @@ class OptionsPanel extends HTMLElement {
       <div class="help-overlay-modal">
         <div class="help-modal-sidebar">
           <button class="help-tab active" data-tab="shortcuts">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M160-200q-33 0-56.5-23.5T80-280v-400q0-33 23.5-56.5T160-760h640q33 0 56.5 23.5T880-680v400q0 33-23.5 56.5T800-200H160Zm0-80h640v-400H160v400Zm160-40h320v-80H320v80ZM200-440h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80ZM200-560h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80ZM160-280v-400 400Z"/></svg>
             <span>Shortcuts</span>
           </button>
+          <button class="help-tab" data-tab="settings">
+            <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/></svg>
+            <span>Settings</span>
+          </button>
           <button class="help-tab" data-tab="about">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
             <span>About</span>
-          </button>
-          <button class="help-tab" data-tab="diagnostics">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Diagnostics</span>
-          </button>
-          <button class="help-tab" data-tab="info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Info</span>
           </button>
         </div>
         <div class="help-modal-content">
           <div class="help-modal-header">
             <span class="help-modal-title">Shortcuts</span>
+            <button class="help-settings-reset" title="Reset canvas settings to defaults" style="display:none">
+              <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor"><path d="M480-400q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0 280q-139 0-241-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Z"/></svg>
+            </button>
             <kbd class="help-modal-dismiss">Esc to close</kbd>
           </div>
           <div class="help-tab-panel active" data-panel="shortcuts">
@@ -331,6 +330,75 @@ class OptionsPanel extends HTMLElement {
               <kbd class="help-overlay-key">Double-click</kbd>
             </div>
           </div>
+          <div class="help-tab-panel" data-panel="settings">
+            <div class="help-info-grid">
+              <div class="help-info-item">
+                <div class="help-info-label">Background Color</div>
+                <div class="help-info-value">
+                  <div class="help-bg-color-row">
+                    <input type="color" class="help-bg-color-input" value="#f5f5f5">
+                    <button class="help-bg-color-reset">Reset</button>
+                  </div>
+                </div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Pattern</div>
+                <div class="help-info-value">
+                  <div class="help-bg-picker">
+                    <button data-bg="checker">Checker</button>
+                    <button data-bg="grid">Grid</button>
+                    <button data-bg="dots">Dots</button>
+                    <button data-bg="none">None</button>
+                  </div>
+                </div>
+              </div>
+              <div class="help-info-item help-bg-pattern-row">
+                <div class="help-info-label">Pattern Size</div>
+                <div class="help-info-value">
+                  <div class="help-bg-picker help-bg-size-picker">
+                    <button data-bg-size="sm">S</button>
+                    <button data-bg-size="md">M</button>
+                    <button data-bg-size="lg">L</button>
+                    <button data-bg-size="xl">XL</button>
+                  </div>
+                </div>
+              </div>
+              <div class="help-info-item help-bg-pattern-row">
+                <div class="help-info-label">Pattern Opacity</div>
+                <div class="help-info-value">
+                  <input type="range" class="help-bg-opacity" min="0" max="1" step="0.05" value="1">
+                </div>
+              </div>
+              <div class="help-info-item help-bg-pattern-row">
+                <div class="help-info-label">Blend Mode</div>
+                <div class="help-info-value">
+                  <select class="help-bg-blend-select">
+                    <option value="normal">Normal</option>
+                    <option value="multiply">Multiply</option>
+                    <option value="screen">Screen</option>
+                    <option value="overlay">Overlay</option>
+                    <option value="darken">Darken</option>
+                    <option value="lighten">Lighten</option>
+                    <option value="color-dodge">Color Dodge</option>
+                    <option value="color-burn">Color Burn</option>
+                    <option value="hard-light">Hard Light</option>
+                    <option value="soft-light">Soft Light</option>
+                    <option value="difference">Difference</option>
+                    <option value="exclusion">Exclusion</option>
+                    <option value="hue">Hue</option>
+                    <option value="saturation">Saturation</option>
+                    <option value="color">Color</option>
+                    <option value="luminosity">Luminosity</option>
+                  </select>
+                </div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Saved State</div>
+                <div class="help-info-value help-diagnostic-storage"></div>
+              </div>
+            </div>
+            <button class="help-reset-btn">Reset All State</button>
+          </div>
           <div class="help-tab-panel" data-panel="about">
             <div class="help-info-grid">
               <div class="help-info-item">
@@ -342,17 +410,21 @@ class OptionsPanel extends HTMLElement {
                 <div class="help-info-value">${this.esc(CONFIG.title)}</div>
               </div>
               <div class="help-info-item">
-                <div class="help-info-label">Repository</div>
-                <div class="help-info-value"><a href="https://github.com/moongopher/ui-studio" target="_blank" rel="noopener">moongopher/ui-studio</a></div>
+                <div class="help-info-label">File Path</div>
+                <div class="help-info-value help-info-filepath"></div>
               </div>
               <div class="help-info-item">
-                <div class="help-info-label">CDN</div>
-                <div class="help-info-value"><a href="https://github.com/moongopher/ui-studio-cdn" target="_blank" rel="noopener">moongopher/ui-studio-cdn</a></div>
+                <div class="help-info-label">Storage Key</div>
+                <div class="help-info-value">${CONFIG.storageKey}</div>
               </div>
-            </div>
-          </div>
-          <div class="help-tab-panel" data-panel="diagnostics">
-            <div class="help-info-grid">
+              <div class="help-info-item">
+                <div class="help-info-label">Total Options</div>
+                <div class="help-info-value">${CONFIG.options.length}</div>
+              </div>
+              <div class="help-info-item">
+                <div class="help-info-label">Active Options</div>
+                <div class="help-info-value help-info-active-count"></div>
+              </div>
               <div class="help-info-item">
                 <div class="help-info-label">Browser</div>
                 <div class="help-info-value help-diagnostic-browser"></div>
@@ -369,25 +441,13 @@ class OptionsPanel extends HTMLElement {
                 <div class="help-info-label">Canvas Zoom</div>
                 <div class="help-info-value help-diagnostic-zoom"></div>
               </div>
-            </div>
-          </div>
-          <div class="help-tab-panel" data-panel="info">
-            <div class="help-info-grid">
               <div class="help-info-item">
-                <div class="help-info-label">File Path</div>
-                <div class="help-info-value help-info-filepath"></div>
+                <div class="help-info-label">Repository</div>
+                <div class="help-info-value"><a href="https://github.com/moongopher/ui-studio" target="_blank" rel="noopener">moongopher/ui-studio</a></div>
               </div>
               <div class="help-info-item">
-                <div class="help-info-label">Storage Key</div>
-                <div class="help-info-value">${CONFIG.storageKey}</div>
-              </div>
-              <div class="help-info-item">
-                <div class="help-info-label">Total Options</div>
-                <div class="help-info-value">${CONFIG.options.length}</div>
-              </div>
-              <div class="help-info-item">
-                <div class="help-info-label">Active Options</div>
-                <div class="help-info-value help-info-active-count"></div>
+                <div class="help-info-label">CDN</div>
+                <div class="help-info-value"><a href="https://github.com/moongopher/ui-studio-cdn" target="_blank" rel="noopener">moongopher/ui-studio-cdn</a></div>
               </div>
             </div>
           </div>
@@ -1239,6 +1299,22 @@ class OptionsPanel extends HTMLElement {
       border-bottom: 1px solid var(--c-border);
       flex-shrink: 0;
     }
+    .help-settings-reset {
+      background: none;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      color: var(--c-text-secondary);
+      cursor: pointer;
+      padding: var(--sp-1);
+      line-height: 0;
+      transition: all var(--t-fast);
+      margin-left: auto;
+      margin-right: var(--sp-3);
+    }
+    .help-settings-reset:hover {
+      color: var(--c-text);
+      border-color: var(--c-text-secondary);
+    }
     .help-modal-title {
       font-size: var(--text-lg);
       font-weight: 700;
@@ -1311,6 +1387,93 @@ class OptionsPanel extends HTMLElement {
     }
     .help-info-value a:hover {
       text-decoration: underline;
+    }
+    .help-reset-btn {
+      margin-top: var(--sp-4);
+      padding: var(--sp-2) var(--sp-4);
+      background: var(--c-danger-light);
+      color: var(--c-danger);
+      border: 1px solid var(--c-danger);
+      border-radius: var(--r-md);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--t-fast);
+    }
+    .help-reset-btn:hover {
+      background: var(--c-danger);
+      color: white;
+    }
+    .help-bg-picker {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .help-bg-picker button {
+      flex: 1;
+      padding: var(--sp-1) var(--sp-2);
+      border: none;
+      background: var(--c-surface);
+      color: var(--c-text-secondary);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--t-fast);
+      border-right: 1px solid var(--c-border);
+    }
+    .help-bg-picker button:last-child {
+      border-right: none;
+    }
+    .help-bg-picker button:hover {
+      background: var(--c-bg-hover);
+    }
+    .help-bg-picker button.active {
+      background: var(--c-primary);
+      color: white;
+    }
+    .help-bg-opacity {
+      width: 100%;
+      accent-color: var(--c-primary);
+      cursor: pointer;
+    }
+    .help-bg-color-row {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+    .help-bg-color-input {
+      width: 36px;
+      height: 28px;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      padding: 2px;
+      cursor: pointer;
+      background: none;
+    }
+    .help-bg-color-reset {
+      padding: var(--sp-1) var(--sp-2);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      background: var(--c-surface);
+      color: var(--c-text-secondary);
+      font-size: var(--text-xs);
+      cursor: pointer;
+      transition: all var(--t-fast);
+    }
+    .help-bg-color-reset:hover {
+      background: var(--c-bg-hover);
+    }
+    .help-bg-blend-select {
+      width: 100%;
+      padding: var(--sp-1) var(--sp-2);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      background: var(--c-surface);
+      color: var(--c-text);
+      font-size: var(--text-xs);
+      cursor: pointer;
     }
 
     /* --- Drag Handle (mobile bottom sheet) --- */
@@ -1772,16 +1935,16 @@ class OptionsPanel extends HTMLElement {
         return;
       }
 
+      if (e.key === 'Escape' && this.helpOverlayOpen) {
+        e.preventDefault();
+        this.toggleHelpOverlay();
+        return;
+      }
+
       if (e.key === 'Escape' && CompareMode.isOpen) {
         if (CONFIG.compareOnly) return;
         e.preventDefault();
         CompareMode.close();
-        return;
-      }
-
-      if (e.key === 'Escape' && this.helpOverlayOpen) {
-        e.preventDefault();
-        this.toggleHelpOverlay();
         return;
       }
     });
@@ -1802,8 +1965,129 @@ class OptionsPanel extends HTMLElement {
         // Update title
         const title = this.shadowRoot.querySelector('.help-modal-title');
         if (title) title.textContent = tab.querySelector('span').textContent;
+        // Show reset button only on settings tab
+        const resetIcon = this.shadowRoot.querySelector('.help-settings-reset');
+        if (resetIcon) resetIcon.style.display = tabId === 'settings' ? '' : 'none';
       });
     });
+
+    // Reset state button
+    const resetBtn = this.shadowRoot.querySelector('.help-reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        const prefix = CONFIG.storageKey;
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k.startsWith(prefix)) keys.push(k);
+        }
+        keys.forEach(k => localStorage.removeItem(k));
+        resetBtn.textContent = `Cleared ${keys.length} key${keys.length !== 1 ? 's' : ''}!`;
+        setTimeout(() => { resetBtn.textContent = 'Reset All State'; }, 1500);
+        // Update storage count display
+        const storageEl = this.shadowRoot.querySelector('.help-diagnostic-storage');
+        if (storageEl) storageEl.textContent = '0 keys';
+      });
+    }
+
+    // Canvas background picker
+    const patternRows = this.shadowRoot.querySelectorAll('.help-bg-pattern-row');
+    this.shadowRoot.querySelectorAll('.help-bg-picker:not(.help-bg-size-picker) button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const bg = btn.dataset.bg;
+        this.shadowRoot.querySelectorAll('.help-bg-picker:not(.help-bg-size-picker) button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const savedSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.className = 'mt-canvas-content mt-bg-' + bg + (bg !== 'none' ? ' mt-bg-' + savedSize : '');
+        });
+        localStorage.setItem(CONFIG.storageKey + '-canvas-bg', bg);
+        patternRows.forEach(r => r.style.display = bg === 'none' ? 'none' : '');
+      });
+    });
+
+    // Pattern size picker
+    this.shadowRoot.querySelectorAll('.help-bg-size-picker button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const size = btn.dataset.bgSize;
+        this.shadowRoot.querySelectorAll('.help-bg-size-picker button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const savedBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || 'checker';
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.className = 'mt-canvas-content mt-bg-' + savedBg + ' mt-bg-' + size;
+        });
+        localStorage.setItem(CONFIG.storageKey + '-canvas-bg-size', size);
+      });
+    });
+
+    // Pattern opacity slider
+    const opacitySlider = this.shadowRoot.querySelector('.help-bg-opacity');
+    if (opacitySlider) {
+      opacitySlider.addEventListener('input', () => {
+        const val = opacitySlider.value;
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.style.setProperty('--bg-opacity', val);
+        });
+        localStorage.setItem(CONFIG.storageKey + '-canvas-bg-opacity', val);
+      });
+    }
+
+    // Background color picker
+    const colorInput = this.shadowRoot.querySelector('.help-bg-color-input');
+    if (colorInput) {
+      colorInput.addEventListener('input', () => {
+        const val = colorInput.value;
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.style.setProperty('--bg-color', val);
+        });
+        localStorage.setItem(CONFIG.storageKey + '-canvas-bg-color', val);
+      });
+    }
+    const colorReset = this.shadowRoot.querySelector('.help-bg-color-reset');
+    if (colorReset) {
+      colorReset.addEventListener('click', () => {
+        const def = '#f5f5f5';
+        if (colorInput) colorInput.value = def;
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.style.setProperty('--bg-color', def);
+        });
+        localStorage.removeItem(CONFIG.storageKey + '-canvas-bg-color');
+      });
+    }
+
+    // Blend mode select
+    const blendSelect = this.shadowRoot.querySelector('.help-bg-blend-select');
+    if (blendSelect) {
+      blendSelect.addEventListener('change', () => {
+        const blend = blendSelect.value;
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.style.setProperty('--bg-blend', blend);
+        });
+        localStorage.setItem(CONFIG.storageKey + '-canvas-bg-blend', blend);
+      });
+    }
+
+    // Settings reset button
+    const settingsReset = this.shadowRoot.querySelector('.help-settings-reset');
+    if (settingsReset) {
+      settingsReset.addEventListener('click', () => {
+        const prefix = CONFIG.storageKey;
+        ['canvas-bg', 'canvas-bg-size', 'canvas-bg-opacity', 'canvas-bg-color', 'canvas-bg-blend'].forEach(k => {
+          localStorage.removeItem(prefix + '-' + k);
+        });
+        // Apply defaults to all canvases
+        const canvasCfg = CONFIG.canvas || {};
+        const defaultBg = canvasCfg.grid === false ? 'none' : 'checker';
+        document.querySelectorAll('.mt-canvas-content').forEach(el => {
+          el.className = 'mt-canvas-content mt-bg-' + defaultBg + (defaultBg !== 'none' ? ' mt-bg-md' : '');
+          el.style.removeProperty('--bg-color');
+          el.style.removeProperty('--bg-opacity');
+          el.style.removeProperty('--bg-blend');
+        });
+        // Re-populate UI
+        this.populateHelpDiagnostics();
+      });
+    }
   }
 
   toggleHelpOverlay() {
@@ -1818,7 +2102,6 @@ class OptionsPanel extends HTMLElement {
       });
       // Populate dynamic values
       this.populateHelpDiagnostics();
-      this.populateHelpInfo();
       // Dismiss the hint on first use
       this.dismissHint();
     } else {
@@ -1859,10 +2142,44 @@ class OptionsPanel extends HTMLElement {
     } else if (zoomEl) {
       zoomEl.textContent = 'N/A';
     }
-  }
 
-  populateHelpInfo() {
-    const root = this.shadowRoot;
+    // Storage count
+    const storageEl = root.querySelector('.help-diagnostic-storage');
+    if (storageEl) {
+      const prefix = CONFIG.storageKey;
+      let count = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        if (localStorage.key(i).startsWith(prefix)) count++;
+      }
+      storageEl.textContent = `${count} key${count !== 1 ? 's' : ''}`;
+    }
+
+    // Canvas background picker active state
+    const currentBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || 'checker';
+    root.querySelectorAll('.help-bg-picker:not(.help-bg-size-picker) button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.bg === currentBg);
+    });
+
+    // Pattern size picker active state
+    const currentSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
+    root.querySelectorAll('.help-bg-size-picker button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.bgSize === currentSize);
+    });
+    const isNone = currentBg === 'none';
+    root.querySelectorAll('.help-bg-pattern-row').forEach(r => r.style.display = isNone ? 'none' : '');
+
+    // Opacity slider
+    const opacitySlider = root.querySelector('.help-bg-opacity');
+    if (opacitySlider) opacitySlider.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity') || '1';
+
+    // Color input
+    const colorInput = root.querySelector('.help-bg-color-input');
+    if (colorInput) colorInput.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color') || '#f5f5f5';
+
+    // Blend mode select
+    const blendSelect = root.querySelector('.help-bg-blend-select');
+    if (blendSelect) blendSelect.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend') || 'normal';
+
     // File path
     const filePathEl = root.querySelector('.help-info-filepath');
     if (filePathEl) filePathEl.textContent = CONFIG.filePath || window.location.href;
@@ -2053,15 +2370,19 @@ class OptionsPanel extends HTMLElement {
         const view = el.closest('.mt-view');
         const ws = view && view._canvasWorkspace;
         if (ws) {
+          // Calculate element position in content-space using offsets
+          let contentX = 0, contentY = 0, node = el;
+          while (node && node !== ws.content) {
+            contentX += node.offsetLeft;
+            contentY += node.offsetTop;
+            node = node.offsetParent;
+          }
           const viewRect = view.getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
           const panel = document.querySelector('mockup-options');
           const panelWidth = panel ? panel.offsetWidth : 0;
           const availableWidth = viewRect.width - panelWidth;
-          const contentX = (elRect.left - viewRect.left - ws.panX) / ws.zoom;
-          const contentY = (elRect.top - viewRect.top - ws.panY) / ws.zoom;
-          const centerX = availableWidth / 2 - (contentX + elRect.width / (2 * ws.zoom)) * ws.zoom;
-          const centerY = viewRect.height / 2 - (contentY + elRect.height / (2 * ws.zoom)) * ws.zoom;
+          const centerX = availableWidth / 2 - (contentX + el.offsetWidth / 2) * ws.zoom;
+          const centerY = viewRect.height / 2 - (contentY + el.offsetHeight / 2) * ws.zoom;
           ws.setPan(centerX, centerY);
         } else {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2248,15 +2569,19 @@ class OptionsPanel extends HTMLElement {
         const view = el.closest('.mt-view');
         const ws = view && view._canvasWorkspace;
         if (ws) {
-          const viewRect = view.getBoundingClientRect();
           const elRect = el.getBoundingClientRect();
           const isHidden = elRect.width === 0 && elRect.height === 0;
           // Skip panning to hidden elements (they have no meaningful position)
           if (isHidden) return;
-          const contentX = (elRect.left - viewRect.left - ws.panX) / ws.zoom;
-          const contentY = (elRect.top - viewRect.top - ws.panY) / ws.zoom;
-          const centerX = viewRect.width / 2 - (contentX + elRect.width / (2 * ws.zoom)) * ws.zoom;
-          const centerY = viewRect.height / 2 - (contentY + elRect.height / (2 * ws.zoom)) * ws.zoom;
+          let contentX = 0, contentY = 0, node = el;
+          while (node && node !== ws.content) {
+            contentX += node.offsetLeft;
+            contentY += node.offsetTop;
+            node = node.offsetParent;
+          }
+          const viewRect = view.getBoundingClientRect();
+          const centerX = viewRect.width / 2 - (contentX + el.offsetWidth / 2) * ws.zoom;
+          const centerY = viewRect.height / 2 - (contentY + el.offsetHeight / 2) * ws.zoom;
           ws.setPan(centerX, centerY);
         } else {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2687,20 +3012,29 @@ const CompareMode = {
     const cellBorder = 2;
     const headerH = 32; // cell header height approx
 
-    let bestIdx = 0; // fallback: 1 panel
-    for (let i = this._layoutSteps.length - 1; i >= 0; i--) {
+    // Score each layout: prefer most panels where content fits without zooming out.
+    // fitScale >= 1.0 means content fits at 100% (no zoom needed).
+    // Among layouts that fit at 100%, pick the one with most panels.
+    // If none fit at 100%, pick the one with highest fitScale (least zoom needed).
+    let bestIdx = 0;
+    let bestFitAt100 = -1; // index of best layout that fits at 100%
+    let bestSubScale = 0;  // best fitScale among layouts that don't fit at 100%
+    let bestSubIdx = 0;
+    for (let i = 0; i < this._layoutSteps.length; i++) {
       const step = this._layoutSteps[i];
-      const cellW = (panelW - gapSize * (step.cols - 1) - 24) / step.cols; // 24 = grid padding lr
+      const cellW = (panelW - gapSize * (step.cols - 1) - 24) / step.cols;
       const availCellH = (totalH - padV - gapSize * (step.rows - 1) - cellBorder * step.rows) / step.rows - headerH;
       const scaleX = cellW / contentW;
       const scaleY = availCellH / contentH;
       const fitScale = Math.min(scaleX, scaleY);
-      // Accept if content fits at ≥40% scale
-      if (fitScale >= 0.4) {
-        bestIdx = i;
-        break;
+      if (fitScale >= 1.0) {
+        bestFitAt100 = i; // keep updating — last (most panels) wins
+      } else if (fitScale > bestSubScale) {
+        bestSubScale = fitScale;
+        bestSubIdx = i;
       }
     }
+    bestIdx = bestFitAt100 >= 0 ? bestFitAt100 : bestSubIdx;
     this._layoutIndex = bestIdx;
     this.applyLayout(grid);
     this.updateLayoutDisplay();
@@ -3438,15 +3772,26 @@ class CanvasWorkspace {
 
 function initCanvasViews() {
   const canvasCfg = CONFIG.canvas || {};
-  const showGrid = canvasCfg.grid !== false;
+  const defaultBg = canvasCfg.grid === false ? 'none' : 'checker';
+  const savedBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || defaultBg;
+  const savedSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
+  const savedColor = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color') || '';
+  const savedOpacity = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity') || '1';
+  const savedBlend = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend') || '';
   document.querySelectorAll('.mt-view').forEach(viewEl => {
     const viewId = viewEl.id.replace('view-', '');
     // Wrap existing children in canvas structure
     const viewport = document.createElement('div');
     viewport.className = 'mt-canvas-viewport';
     const content = document.createElement('div');
-    content.className = 'mt-canvas-content' + (showGrid ? ' mt-grid' : '');
-    while (viewEl.firstChild) content.appendChild(viewEl.firstChild);
+    content.className = 'mt-canvas-content mt-bg-' + savedBg + (savedBg !== 'none' ? ' mt-bg-' + savedSize : '');
+    if (savedColor) content.style.setProperty('--bg-color', savedColor);
+    if (savedOpacity !== '1') content.style.setProperty('--bg-opacity', savedOpacity);
+    if (savedBlend) content.style.setProperty('--bg-blend', savedBlend);
+    const item = document.createElement('div');
+    item.className = 'mt-canvas-item';
+    while (viewEl.firstChild) item.appendChild(viewEl.firstChild);
+    content.appendChild(item);
     viewport.appendChild(content);
     viewEl.appendChild(viewport);
 
