@@ -2,7 +2,26 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.10';
+const ENGINE_VERSION = '0.11';
+
+// --- Dynamic interface loader ---
+const _scriptBase = document.currentScript.src.replace(/\/[^/]+$/, '/');
+
+function loadInterface(version) {
+  // Load CSS
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = _scriptBase + version + '.css';
+  document.head.appendChild(link);
+  // Load JS (returns promise)
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = _scriptBase + version + '.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.body.appendChild(s);
+  });
+}
 
 // --- Light DOM helpers for applyOptions ---
 function toggle(elementId, show) {
@@ -106,7 +125,7 @@ function initTabs() {
       switchView(v.id);
       if (CONFIG.compareOnly) {
         const firstOpt = CONFIG.options.find(o => o.target && o.target.view === v.id);
-        if (firstOpt) CompareMode.open(firstOpt.id);
+        if (firstOpt && window._engineInterface) window._engineInterface.open(firstOpt.id);
       }
     });
     viewTabs.appendChild(btn);
@@ -366,7 +385,7 @@ class OptionsPanel extends HTMLElement {
               <div class="help-info-item help-bg-pattern-row">
                 <div class="help-info-label">Pattern Opacity</div>
                 <div class="help-info-value">
-                  <input type="range" class="help-bg-opacity" min="0" max="1" step="0.05" value="1">
+                  <input type="range" class="help-bg-opacity" min="0" max="0.5" step="0.05" value="0.1">
                 </div>
               </div>
               <div class="help-info-item help-bg-pattern-row">
@@ -393,13 +412,12 @@ class OptionsPanel extends HTMLElement {
                 </div>
               </div>
               <div class="help-info-item">
-                <div class="help-info-label">View Mode</div>
+                <div class="help-info-label">Interface</div>
                 <div class="help-info-value">
-                  <div class="help-view-mode">
-                    <span class="help-view-mode-label">Normal</span>
-                    <label class="toggle-switch help-view-mode-toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
-                    <span class="help-view-mode-label">Compare</span>
-                  </div>
+                  <select class="help-interface-select">
+                    <option value="v1">v1 — Canvas</option>
+                    <option value="v2">v2 — Compare Grid</option>
+                  </select>
                 </div>
               </div>
               <div class="help-info-item">
@@ -1059,6 +1077,22 @@ class OptionsPanel extends HTMLElement {
       white-space: nowrap;
     }
 
+    /* --- Guide Variant Thumbnails --- */
+    .guide-variant-thumb {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: var(--r-sm);
+      background: var(--c-surface-alt);
+      margin-bottom: var(--sp-1);
+      position: relative;
+    }
+    .guide-variant-thumb-inner {
+      position: absolute;
+      transform-origin: top left;
+      pointer-events: none;
+    }
+
     /* --- Guide Variant "Our Pick" Label --- */
     .guide-variant-card.recommended .guide-variant-pick {
       font-size: 9px;
@@ -1490,19 +1524,14 @@ class OptionsPanel extends HTMLElement {
       font-size: var(--text-xs);
       cursor: pointer;
     }
-    .help-view-mode {
-      display: flex;
-      align-items: center;
-      gap: var(--sp-2);
-    }
-    .help-view-mode-label {
+    .help-interface-select {
+      padding: var(--sp-1) var(--sp-2);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
       font-size: var(--text-xs);
-      color: var(--c-text-muted);
-      transition: color var(--t-fast);
-    }
-    .help-view-mode-label.active {
+      background: var(--c-surface);
       color: var(--c-text);
-      font-weight: 600;
+      cursor: pointer;
     }
 
     /* --- Drag Handle (mobile bottom sheet) --- */
@@ -1832,7 +1861,7 @@ class OptionsPanel extends HTMLElement {
           item.classList.toggle('expanded');
           const optId = parseInt(item.dataset.optId);
           if (optId && item.classList.contains('expanded')) {
-            CompareMode.open(optId);
+            if (window._engineInterface) window._engineInterface.open(optId);
           }
         });
       });
@@ -1912,7 +1941,7 @@ class OptionsPanel extends HTMLElement {
       body.querySelectorAll('.compare-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          CompareMode.open(parseInt(btn.dataset.compareOpt));
+          if (window._engineInterface) window._engineInterface.open(parseInt(btn.dataset.compareOpt));
         });
       });
     }
@@ -1970,10 +1999,10 @@ class OptionsPanel extends HTMLElement {
         return;
       }
 
-      if (e.key === 'Escape' && CompareMode.isOpen) {
+      if (e.key === 'Escape' && window._engineInterface && window._engineInterface.isOpen) {
         if (CONFIG.compareOnly) return;
         e.preventDefault();
-        CompareMode.close();
+        window._engineInterface.close();
         return;
       }
     });
@@ -2116,37 +2145,20 @@ class OptionsPanel extends HTMLElement {
         applyBgClasses(defaultBg, 'md');
         bgTargets().forEach(el => {
           el.style.removeProperty('--bg-color');
-          el.style.removeProperty('--bg-opacity');
+          el.style.setProperty('--bg-opacity', '0.1');
           el.style.removeProperty('--bg-blend');
         });
         this.populateHelpDiagnostics();
       });
     }
 
-    // View mode toggle (Normal ↔ Compare)
-    const viewModeToggle = this.shadowRoot.querySelector('.help-view-mode-toggle input');
-    if (viewModeToggle) {
-      const labels = this.shadowRoot.querySelectorAll('.help-view-mode-label');
-      const updateLabels = (isCompare) => {
-        if (labels[0]) labels[0].classList.toggle('active', !isCompare);
-        if (labels[1]) labels[1].classList.toggle('active', isCompare);
-      };
-      updateLabels(CONFIG.compareOnly);
-      viewModeToggle.checked = CONFIG.compareOnly;
-      viewModeToggle.addEventListener('change', () => {
-        const isCompare = viewModeToggle.checked;
-        updateLabels(isCompare);
-        CONFIG.compareOnly = isCompare;
-        localStorage.setItem(CONFIG.storageKey + '-compare-only', isCompare ? '1' : '0');
-        if (isCompare) {
-          const firstOpt = CONFIG.options.find(o => o.variants);
-          if (firstOpt) CompareMode.open(firstOpt.id);
-        } else {
-          CompareMode.close();
-          // Hide tabs when switching compareOnly mockup to normal mode
-          const viewTabs = document.getElementById('mt-view-tabs');
-          if (viewTabs) viewTabs.classList.add('mt-tabs-hidden');
-        }
+    // Interface selector (v1, v2, ...)
+    const interfaceSelect = this.shadowRoot.querySelector('.help-interface-select');
+    if (interfaceSelect) {
+      interfaceSelect.value = CONFIG.compareOnly ? 'v2' : 'v1';
+      interfaceSelect.addEventListener('change', () => {
+        localStorage.setItem(CONFIG.storageKey + '-interface', interfaceSelect.value);
+        location.reload();
       });
     }
   }
@@ -2231,7 +2243,7 @@ class OptionsPanel extends HTMLElement {
 
     // Opacity slider
     const opacitySlider = root.querySelector('.help-bg-opacity');
-    if (opacitySlider) opacitySlider.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity') || '1';
+    if (opacitySlider) opacitySlider.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity') || '0.1';
 
     // Color input
     const colorInput = root.querySelector('.help-bg-color-input');
@@ -2241,13 +2253,10 @@ class OptionsPanel extends HTMLElement {
     const blendSelect = root.querySelector('.help-bg-blend-select');
     if (blendSelect) blendSelect.value = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend') || 'normal';
 
-    // View mode toggle
-    const viewModeToggle = root.querySelector('.help-view-mode-toggle input');
-    if (viewModeToggle) {
-      viewModeToggle.checked = CONFIG.compareOnly;
-      const labels = root.querySelectorAll('.help-view-mode-label');
-      if (labels[0]) labels[0].classList.toggle('active', !CONFIG.compareOnly);
-      if (labels[1]) labels[1].classList.toggle('active', CONFIG.compareOnly);
+    // Interface selector
+    const interfaceSelect = root.querySelector('.help-interface-select');
+    if (interfaceSelect) {
+      interfaceSelect.value = CONFIG.compareOnly ? 'v2' : 'v1';
     }
 
     // File path
@@ -2561,9 +2570,10 @@ class OptionsPanel extends HTMLElement {
       Object.entries(opt.variants).forEach(([key, label]) => {
         const isRecVariant = opt.recommended && opt.recommendedVariant === key;
         const isSelected = decision === 'yes' && currentVariant === key;
-        cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-gv-key="${key}"><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
+        cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-gv-key="${key}"><div class="guide-variant-thumb"></div><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
       });
-      cardsEl.innerHTML = cardsHtml;
+      cardsEl.innerHTML = cardsHtml; // eslint-disable-line -- trusted template from CONFIG keys
+      this._renderThumbs(opt, cardsEl);
 
       // Update skip card state
       const skipCard = root.querySelector('.guide-variants-section > .guide-skip-card');
@@ -2605,7 +2615,7 @@ class OptionsPanel extends HTMLElement {
           guideCompareBtn.textContent = '\u22A2 Compare';
           cardsEl.parentElement.appendChild(guideCompareBtn);
         }
-        guideCompareBtn.onclick = (e) => { e.stopPropagation(); CompareMode.open(opt.id); };
+        guideCompareBtn.onclick = (e) => { e.stopPropagation(); if (window._engineInterface) window._engineInterface.open(opt.id); };
       }
     } else {
       varSection.style.display = 'none';
@@ -2660,8 +2670,8 @@ class OptionsPanel extends HTMLElement {
     }
 
     // compareOnly: auto-switch compare grid to current guide option
-    if (CONFIG.compareOnly && opt.variants && CompareMode.optionId !== opt.id) {
-      CompareMode.open(opt.id);
+    if (CONFIG.compareOnly && opt.variants && window._engineInterface && window._engineInterface.optionId !== opt.id) {
+      window._engineInterface.open(opt.id);
     }
 
     this.updateActiveCount();
@@ -2899,6 +2909,114 @@ class OptionsPanel extends HTMLElement {
   }
 
   // --- Utility ---
+  /* --- Variant Thumbnail Rendering --- */
+
+  _renderThumbs(opt, cardsEl) {
+    if (!opt.target || !opt.target.el || !opt.variants) return;
+    const targetEl = document.getElementById(opt.target.el);
+    if (!targetEl) return;
+
+    // Target may be inside a hidden view/container — temporarily reveal for measurement
+    const view = targetEl.closest('.mt-view');
+    const viewsContainer = view ? view.parentElement : null;
+    const restore = [];
+    // Reveal #mt-views container if hidden
+    if (viewsContainer && getComputedStyle(viewsContainer).display === 'none') {
+      restore.push({ el: viewsContainer, props: { display: viewsContainer.style.display, position: viewsContainer.style.position, visibility: viewsContainer.style.visibility, pointerEvents: viewsContainer.style.pointerEvents } });
+      viewsContainer.style.display = 'block';
+      viewsContainer.style.position = 'absolute';
+      viewsContainer.style.visibility = 'hidden';
+      viewsContainer.style.pointerEvents = 'none';
+    }
+    // Reveal the view itself if hidden
+    if (view && getComputedStyle(view).display === 'none') {
+      restore.push({ el: view, props: { display: view.style.display, position: view.style.position, visibility: view.style.visibility, pointerEvents: view.style.pointerEvents } });
+      view.style.display = 'block';
+      view.style.position = 'absolute';
+      view.style.visibility = 'hidden';
+      view.style.pointerEvents = 'none';
+    }
+
+    // Temporarily show the active variant for each card to get correct measurements
+    // First, ensure target el itself is visible
+    const targetWasHidden = targetEl.classList.contains('mt-hidden');
+    if (targetWasHidden) targetEl.classList.remove('mt-hidden');
+
+    cardsEl.querySelectorAll('.guide-variant-card').forEach(card => {
+      const key = card.dataset.gvKey;
+      const thumbDiv = card.querySelector('.guide-variant-thumb');
+      if (!thumbDiv || !key) return;
+
+      // Clone just the variant element for a tighter crop
+      const variantElId = `${opt.target.el}-${key}`;
+      const variantEl = document.getElementById(variantElId);
+      if (!variantEl) return;
+
+      // Temporarily show this variant for cloning
+      const prevDisplay = variantEl.style.display;
+      variantEl.style.display = '';
+
+      const clone = variantEl.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+
+      variantEl.style.display = prevDisplay;
+
+      // Adopt light DOM stylesheets into shadow root (once) so clone renders correctly
+      this._adoptPageStyles();
+
+      // Insert clone into thumb, measure its natural size, then scale to fit
+      const pad = 8;
+      const inner = document.createElement('div');
+      inner.className = 'guide-variant-thumb-inner';
+      inner.appendChild(clone);
+      thumbDiv.appendChild(inner);
+
+      const cloneW = inner.scrollWidth;
+      const cloneH = inner.scrollHeight;
+      if (!cloneW || !cloneH) return;
+
+      const thumbW = thumbDiv.offsetWidth || 120;
+      const thumbH = thumbDiv.offsetHeight || 120;
+      const scaleX = (thumbW - pad * 2) / cloneW;
+      const scaleY = (thumbH - pad * 2) / cloneH;
+      const scale = Math.min(scaleX, scaleY, 1);
+
+      // Center the scaled content within the thumbnail
+      const scaledW = cloneW * scale;
+      const scaledH = cloneH * scale;
+      const offsetX = (thumbW - scaledW) / 2;
+      const offsetY = (thumbH - scaledH) / 2;
+
+      inner.style.transform = `scale(${scale})`;
+      inner.style.width = cloneW + 'px';
+      inner.style.left = offsetX + 'px';
+      inner.style.top = offsetY + 'px';
+    });
+
+    // Restore hidden state
+    if (targetWasHidden) targetEl.classList.add('mt-hidden');
+    restore.forEach(r => {
+      Object.entries(r.props).forEach(([k, v]) => r.el.style[k] = v);
+    });
+  }
+
+  _adoptPageStyles() {
+    if (this._pageStylesAdopted) return;
+    this._pageStylesAdopted = true;
+    const sheets = [];
+    for (const sheet of document.styleSheets) {
+      try {
+        const clone = new CSSStyleSheet();
+        let rules = '';
+        for (const rule of sheet.cssRules) rules += rule.cssText + '\n';
+        clone.replaceSync(rules);
+        sheets.push(clone);
+      } catch (e) { /* cross-origin */ }
+    }
+    this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, ...sheets];
+  }
+
   esc(str) {
     const div = document.createElement('div');
     div.textContent = str;
@@ -2907,962 +3025,22 @@ class OptionsPanel extends HTMLElement {
 }
 
 /* ============================================================
-   COMPARE MODE
+   CANVAS VIEW SETUP (shared DOM wrapping — used by v1 and v2)
    ============================================================ */
-class CompareCanvas {
-  constructor(cellEl, onZoomChange) {
-    this.cell = cellEl;
-    this.canvas = cellEl.querySelector('.mt-compare-cell-canvas');
-    this.viewport = cellEl.querySelector('.mt-compare-cell-viewport');
-    this.zoomDisplay = cellEl.querySelector('.mt-compare-cell-zoom');
-    this.onZoomChange = onZoomChange;
-    this.zoom = 1.0;
-    this.panX = 0;
-    this.panY = 0;
-    this._panning = false;
-    this._lastX = 0;
-    this._lastY = 0;
-    this._syncing = false;
-
-    this.canvas.addEventListener('wheel', this._onWheel.bind(this), { passive: false });
-    this.canvas.addEventListener('mousedown', this._onMouseDown.bind(this));
-    this._onMouseMoveBound = this._onMouseMove.bind(this);
-    this._onMouseUpBound = this._onMouseUp.bind(this);
-  }
-
-  setZoom(level, cx, cy) {
-    const old = this.zoom;
-    this.zoom = Math.max(0.25, Math.min(2.0, level));
-    if (cx != null && cy != null) {
-      const d = this.zoom / old;
-      this.panX = cx - (cx - this.panX) * d;
-      this.panY = cy - (cy - this.panY) * d;
-    }
-    this.updateTransform();
-  }
-
-  setPan(x, y) { this.panX = x; this.panY = y; this.updateTransform(); }
-
-  updateTransform() {
-    this.viewport.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
-    if (this.zoomDisplay) this.zoomDisplay.textContent = `${Math.round(this.zoom * 100)}%`;
-  }
-
-  reset() { this.zoom = 1.0; this.panX = 0; this.panY = 0; this.updateTransform(); }
-
-  _onWheel(e) {
-    e.preventDefault();
-    if (e.ctrlKey || e.metaKey) {
-      const delta = e.deltaY > 0 ? -1 : 1;
-      const rect = this.canvas.getBoundingClientRect();
-      this.setZoom(this.zoom + delta * 0.1, e.clientX - rect.left, e.clientY - rect.top);
-    } else {
-      let dx = e.deltaX, dy = e.deltaY;
-      if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
-      this.setPan(this.panX - dx, this.panY - dy);
-    }
-    if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
-  }
-
-  _onMouseDown(e) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    this._panning = true;
-    this._lastX = e.clientX;
-    this._lastY = e.clientY;
-    document.addEventListener('mousemove', this._onMouseMoveBound);
-    document.addEventListener('mouseup', this._onMouseUpBound);
-  }
-
-  _onMouseMove(e) {
-    if (!this._panning) return;
-    this.setPan(this.panX + e.clientX - this._lastX, this.panY + e.clientY - this._lastY);
-    this._lastX = e.clientX;
-    this._lastY = e.clientY;
-    if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
-  }
-
-  _onMouseUp() {
-    this._panning = false;
-    document.removeEventListener('mousemove', this._onMouseMoveBound);
-    document.removeEventListener('mouseup', this._onMouseUpBound);
-  }
-
-  destroy() {
-    this._onMouseUp();
-  }
-}
-
-const CompareMode = {
-  isOpen: false,
-  optionId: null,
-  option: null,
-  syncZoom: true,
-  cells: [],
-  overlayEl: null,
-  _escHandler: null,
-  _layoutSteps: [],
-  _layoutIndex: 0,
-
-  /**
-   * Build list of distinct (cols, rows, visible) layouts for N total variants.
-   * Each entry produces a visually different grid. Sorted by visible count ascending.
-   */
-  buildLayoutSteps(totalVariants) {
-    const panelW = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
-    const panelH = window.innerHeight - 48;
-    const isLandscape = panelW >= panelH;
-    const seen = new Set();
-    const steps = [];
-
-    for (let n = 1; n <= totalVariants; n++) {
-      // Pick best cols for this visible count
-      let bestCols = 1, bestScore = -Infinity;
-      for (let c = 1; c <= n; c++) {
-        const r = Math.ceil(n / c);
-        const cellW = panelW / c;
-        const cellH = panelH / r;
-        const cellAspect = cellW / cellH;
-        const score = -Math.abs(Math.log(cellAspect / (4 / 3)));
-        const bias = isLandscape ? 0.1 * c : -0.1 * c;
-        if (score + bias > bestScore) { bestScore = score + bias; bestCols = c; }
-      }
-      const r = Math.ceil(n / bestCols);
-      const key = bestCols + 'x' + r;
-      if (!seen.has(key)) {
-        seen.add(key);
-        steps.push({ cols: bestCols, rows: r, visible: n });
-      }
-    }
-    return steps;
-  },
-
-  loadLayoutIndex(optId) {
-    const saved = localStorage.getItem(CONFIG.storageKey + '-compare-layout-' + optId);
-    return saved !== null ? parseInt(saved, 10) : null;
-  },
-
-  saveLayoutIndex() {
-    localStorage.setItem(CONFIG.storageKey + '-compare-layout-' + this.optionId, this._layoutIndex);
-  },
-
-  /**
-   * Auto-pick the best layout step based on content dimensions and screen size.
-   * Prefers showing more variants while keeping content readable (≥40% scale).
-   * Called after grid is in the DOM so content can be measured.
-   */
-  autoPickLayout(grid) {
-    if (!this.cells.length) return;
-    // Measure first cell's actual content bounds (not canvas min-size)
-    const firstContent = this.cells[0].element.querySelector('.mt-compare-cell-content');
-    if (!firstContent) return;
-    const clone = firstContent.firstElementChild;
-    let contentW = 400, contentH = 300;
-    if (clone) {
-      // Temporarily remove canvas min-size to measure intrinsic content
-      const prevMinW = clone.style.minWidth;
-      const prevMinH = clone.style.minHeight;
-      clone.style.minWidth = '0';
-      clone.style.minHeight = '0';
-      // Force layout recalc
-      const intrinsicW = clone.scrollWidth;
-      const intrinsicH = clone.scrollHeight;
-      clone.style.minWidth = prevMinW;
-      clone.style.minHeight = prevMinH;
-      if (intrinsicW > 0) contentW = intrinsicW;
-      if (intrinsicH > 0) contentH = intrinsicH;
-    }
-
-    const toolbar = document.querySelector('.mt-compare-toolbar');
-    const toolbarH = toolbar ? toolbar.offsetHeight : 53;
-    const panelW = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
-    const totalH = window.innerHeight - toolbarH;
-    const padV = 24;
-    const gapSize = 12;
-    const cellBorder = 2;
-    const headerH = 32; // cell header height approx
-
-    // Score each layout: prefer most panels where content fits without zooming out.
-    // fitScale >= 1.0 means content fits at 100% (no zoom needed).
-    // Among layouts that fit at 100%, pick the one with most panels.
-    // If none fit at 100%, pick the one with highest fitScale (least zoom needed).
-    let bestIdx = 0;
-    let bestFitAt100 = -1; // index of best layout that fits at 100%
-    let bestSubScale = 0;  // best fitScale among layouts that don't fit at 100%
-    let bestSubIdx = 0;
-    for (let i = 0; i < this._layoutSteps.length; i++) {
-      const step = this._layoutSteps[i];
-      const cellW = (panelW - gapSize * (step.cols - 1) - 24) / step.cols;
-      const availCellH = (totalH - padV - gapSize * (step.rows - 1) - cellBorder * step.rows) / step.rows - headerH;
-      const scaleX = cellW / contentW;
-      const scaleY = availCellH / contentH;
-      const fitScale = Math.min(scaleX, scaleY);
-      if (fitScale >= 1.0) {
-        bestFitAt100 = i; // keep updating — last (most panels) wins
-      } else if (fitScale > bestSubScale) {
-        bestSubScale = fitScale;
-        bestSubIdx = i;
-      }
-    }
-    bestIdx = bestFitAt100 >= 0 ? bestFitAt100 : bestSubIdx;
-    this._layoutIndex = bestIdx;
-    this.applyLayout(grid);
-    this.updateLayoutDisplay();
-  },
-
-  applyLayout(grid) {
-    const step = this._layoutSteps[this._layoutIndex];
-    grid.style.gridTemplateColumns = `repeat(${step.cols}, 1fr)`;
-    const toolbar = document.querySelector('.mt-compare-toolbar');
-    const toolbarH = toolbar ? toolbar.offsetHeight : 53;
-    const padV = 24;  // grid padding: var(--sp-3) top + bottom = 12*2
-    const gap = 12;   // grid gap: var(--sp-3)
-    const cellBorder = 2; // 1px top + 1px bottom border on each .mt-compare-cell
-    const availH = window.innerHeight - toolbarH - padV - (gap * (step.rows - 1)) - (cellBorder * step.rows);
-    const rowH = Math.floor(availH / step.rows);
-    grid.style.gridAutoRows = rowH + 'px';
-  },
-
-  updateLayoutDisplay() {
-    if (this._colCountDisplay) {
-      const step = this._layoutSteps[this._layoutIndex];
-      this._colCountDisplay.textContent = step.cols * step.rows;
-    }
-  },
-
-  open(optId) {
-    if (this.isOpen) {
-      if (CONFIG.compareOnly) {
-        // In compareOnly, tear down old grid directly and rebuild
-        this.destroyGrid();
-        document.body.classList.remove('mt-compare-open');
-        if (this._escHandler) {
-          document.removeEventListener('keydown', this._escHandler);
-          this._escHandler = null;
-        }
-        this.isOpen = false;
-      } else {
-        this.close();
-      }
-    }
-    const opt = CONFIG.options.find(o => o.id === optId);
-    if (!opt || !opt.variants) return;
-    this.optionId = optId;
-    this.option = opt;
-    this.isOpen = true;
-
-    // Ensure option is active so elements are visible
-    const panel = document.querySelector('options-panel');
-    if (panel && !panel.activeOptions.has(optId)) {
-      panel.activeOptions.add(optId);
-      panel.syncToggles();
-      panel.saveState();
-      panel.fireOptionsChange();
-    }
-
-    // Switch to the option's target view
-    if (opt.target && opt.target.view) switchView(opt.target.view);
-
-    this.buildGrid();
-
-
-    document.body.classList.add('mt-compare-open');
-
-    // Sync highlight when sidebar variant changes
-    this._optionsHandler = (e) => {
-      const key = e.detail.variants[this.optionId];
-      if (key && this.cells) {
-        this.cells.forEach(c => {
-          const picked = c.key === key;
-          c.element.classList.toggle('mt-compare-picked', picked);
-          if (picked) c.element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-      }
-    };
-    document.querySelector('options-panel').addEventListener('options-change', this._optionsHandler);
-
-    // Escape key handler
-    this._escHandler = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); this.close(); }
-    };
-    document.addEventListener('keydown', this._escHandler);
-  },
-
-  close() {
-    if (CONFIG.compareOnly) return;
-    if (!this.isOpen) return;
-    this.destroyGrid();
-    document.body.classList.remove('mt-compare-open');
-    if (this._escHandler) {
-      document.removeEventListener('keydown', this._escHandler);
-      this._escHandler = null;
-    }
-    if (this._optionsHandler) {
-      const panel = document.querySelector('options-panel');
-      if (panel) panel.removeEventListener('options-change', this._optionsHandler);
-      this._optionsHandler = null;
-    }
-    this.isOpen = false;
-    this.optionId = null;
-    this.option = null;
-    this.cells = [];
-    this._focusedCell = null;
-    this._colCountDisplay = null;
-  },
-
-  pick(key) {
-    const panel = document.querySelector('options-panel');
-    if (panel) {
-      panel.optionVariants[this.optionId] = key;
-      // Mark as accepted in guide mode
-      if (panel.panelMode === 'guide') {
-        panel.activeOptions.add(this.optionId);
-        panel.guideDecisions[this.optionId] = 'yes';
-        panel.syncToggles();
-      }
-      // Update variant button selection in shadow DOM
-      const body = panel.shadowRoot.querySelector('.panel-body');
-      if (body) {
-        body.querySelectorAll(`[data-variant-opt="${this.optionId}"]`).forEach(b => {
-          b.classList.toggle('selected', b.dataset.variantKey === key);
-        });
-      }
-      panel.saveState();
-      panel.fireOptionsChange();
-      // Refresh guide view
-      if (panel.panelMode === 'guide') panel.updateGuide();
-    }
-    if (CONFIG.compareOnly) {
-      // Highlight selected cell, stay in grid
-      this.cells.forEach(c => c.element.classList.toggle('mt-compare-picked', c.key === key));
-      return;
-    }
-    this.close();
-  },
-
-  buildGrid() {
-    const opt = this.option;
-    const variantKeys = Object.keys(opt.variants);
-    // Find the source view's canvas content
-    const targetView = opt.target && opt.target.view
-      ? document.getElementById('view-' + opt.target.view)
-      : document.querySelector('.mt-view.active');
-    const sourceContent = targetView ? targetView.querySelector('.mt-canvas-content') : null;
-
-    // Build overlay using DOM methods
-    const overlay = document.createElement('div');
-    overlay.className = 'mt-compare-overlay';
-
-    // Toolbar
-    const toolbar = document.createElement('div');
-    toolbar.className = 'mt-compare-toolbar';
-
-    const title = document.createElement('span');
-    title.className = 'mt-compare-title';
-    title.textContent = opt.name;
-    toolbar.appendChild(title);
-
-    const syncLabel = document.createElement('label');
-    syncLabel.className = 'mt-compare-sync-label';
-    const syncCb = document.createElement('input');
-    syncCb.type = 'checkbox';
-    syncCb.checked = this.syncZoom;
-    syncLabel.appendChild(syncCb);
-    syncLabel.appendChild(document.createTextNode('Sync zoom'));
-    toolbar.appendChild(syncLabel);
-
-    // Zoom controls
-    const zoomControls = document.createElement('div');
-    zoomControls.className = 'mt-compare-zoom-controls';
-    const zoomOut = document.createElement('button');
-    zoomOut.className = 'mt-compare-col-btn';
-    zoomOut.textContent = '−';
-    zoomOut.title = 'Zoom out';
-    const zoomDisplay = document.createElement('span');
-    zoomDisplay.className = 'mt-compare-zoom-display';
-    zoomDisplay.textContent = '100%';
-    const zoomIn = document.createElement('button');
-    zoomIn.className = 'mt-compare-col-btn';
-    zoomIn.textContent = '+';
-    zoomIn.title = 'Zoom in';
-    const zoomReset = document.createElement('button');
-    zoomReset.className = 'mt-compare-col-btn';
-    zoomReset.textContent = '\u27F2';
-    zoomReset.title = 'Reset zoom';
-    zoomControls.appendChild(zoomOut);
-    zoomControls.appendChild(zoomDisplay);
-    zoomControls.appendChild(zoomIn);
-    zoomControls.appendChild(zoomReset);
-    toolbar.appendChild(zoomControls);
-
-    // Column count controls
-    const colControls = document.createElement('div');
-    colControls.className = 'mt-compare-col-controls';
-    const minusBtn = document.createElement('button');
-    minusBtn.className = 'mt-compare-col-btn';
-    minusBtn.textContent = '−';
-    minusBtn.title = 'Show fewer';
-    const colDisplay = document.createElement('span');
-    colDisplay.className = 'mt-compare-col-display';
-    this._colCountDisplay = colDisplay;
-    const plusBtn = document.createElement('button');
-    plusBtn.className = 'mt-compare-col-btn';
-    plusBtn.textContent = '+';
-    plusBtn.title = 'Show more';
-    colControls.appendChild(minusBtn);
-    colControls.appendChild(colDisplay);
-    colControls.appendChild(plusBtn);
-    toolbar.appendChild(colControls);
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'mt-compare-close-btn';
-    closeBtn.textContent = 'Close';
-    if (CONFIG.compareOnly) closeBtn.style.display = 'none';
-    toolbar.appendChild(closeBtn);
-
-    overlay.appendChild(toolbar);
-
-    // Sync toggle
-    syncCb.addEventListener('change', (e) => {
-      this.syncZoom = e.target.checked;
-      // When turning sync on, sync all cells to the first cell's zoom
-      if (this.syncZoom && this.cells.length > 0) {
-        this.syncZoomToAll(this.cells[0].canvas);
-        zoomDisplay.textContent = `${Math.round(this.cells[0].canvas.zoom * 100)}%`;
-      }
-    });
-    closeBtn.addEventListener('click', () => this.close());
-
-    // Zoom controls — affect all cells when sync on, focused cell when off
-    const applyZoomAction = (fn) => {
-      if (this.syncZoom) {
-        this.cells.forEach(c => fn(c.canvas));
-      } else {
-        const target = this._focusedCell || this.cells[0];
-        if (target) fn(target.canvas);
-      }
-      const displayCell = this.syncZoom ? this.cells[0] : (this._focusedCell || this.cells[0]);
-      if (displayCell) {
-        zoomDisplay.textContent = `${Math.round(displayCell.canvas.zoom * 100)}%`;
-      }
-    };
-    zoomOut.addEventListener('click', () => {
-      applyZoomAction(c => c.setZoom(c.zoom - 0.1));
-    });
-    zoomIn.addEventListener('click', () => {
-      applyZoomAction(c => c.setZoom(c.zoom + 0.1));
-    });
-    zoomReset.addEventListener('click', () => {
-      applyZoomAction(c => c.reset());
-    });
-
-    // Layout steps — precompute distinct layouts for this variant count
-    this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
-    const savedIdx = this.loadLayoutIndex(this.optionId);
-    this._autoLayout = (savedIdx === null); // auto-pick if no manual override
-    if (savedIdx !== null && savedIdx >= 0 && savedIdx < this._layoutSteps.length) {
-      this._layoutIndex = savedIdx;
-    } else {
-      // Temporary: show all variants, autoPickLayout will adjust after DOM append
-      this._layoutIndex = this._layoutSteps.length - 1;
-    }
-
-    // Layout handlers
-    minusBtn.addEventListener('click', () => {
-      if (this._layoutIndex <= 0) return;
-      this._layoutIndex--; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
-    });
-    plusBtn.addEventListener('click', () => {
-      if (this._layoutIndex >= this._layoutSteps.length - 1) return;
-      this._layoutIndex++; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
-    });
-
-    // Grid
-    const grid = document.createElement('div');
-    grid.className = 'mt-compare-grid';
-    this.applyLayout(grid);
-    this.updateLayoutDisplay();
-    this._resizeHandler = () => {
-      // Recompute layout steps on resize (screen orientation may change)
-      const oldVisible = this._layoutSteps[this._layoutIndex].visible;
-      this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
-      // Find closest step to previous visible count
-      this._layoutIndex = this._layoutSteps.findIndex(s => s.visible >= oldVisible);
-      if (this._layoutIndex < 0) this._layoutIndex = this._layoutSteps.length - 1;
-      this.applyLayout(grid);
-      this.updateLayoutDisplay();
-    };
-    window.addEventListener('resize', this._resizeHandler);
-    overlay.appendChild(grid);
-
-    this.cells = [];
-    variantKeys.forEach(key => {
-      const label = opt.variants[key];
-      const cell = document.createElement('div');
-      cell.className = 'mt-compare-cell';
-
-      // Header
-      const header = document.createElement('div');
-      header.className = 'mt-compare-cell-header';
-
-      const cellLabel = document.createElement('span');
-      cellLabel.className = 'mt-compare-cell-label';
-      cellLabel.textContent = label;
-      header.appendChild(cellLabel);
-
-      const zoomDisp = document.createElement('span');
-      zoomDisp.className = 'mt-compare-cell-zoom';
-      zoomDisp.textContent = '100%';
-      header.appendChild(zoomDisp);
-
-      cell.appendChild(header);
-
-      // Click-to-pick (ignore drags)
-      let downX, downY;
-      cell.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
-      cell.addEventListener('pointerup', (e) => {
-        if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) this.pick(key);
-      });
-
-      // Canvas area (apply saved bg settings)
-      const canvasArea = document.createElement('div');
-      const _savedBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || ((CONFIG.canvas || {}).grid === false ? 'none' : 'checker');
-      const _savedSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
-      const _savedColor = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color');
-      const _savedOpacity = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity');
-      const _savedBlend = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend');
-      canvasArea.className = 'mt-compare-cell-canvas mt-bg-' + _savedBg + (_savedBg !== 'none' ? ' mt-bg-' + _savedSize : '');
-      if (_savedColor) canvasArea.style.setProperty('--bg-color', _savedColor);
-      if (_savedOpacity && _savedOpacity !== '1') canvasArea.style.setProperty('--bg-opacity', _savedOpacity);
-      if (_savedBlend) canvasArea.style.setProperty('--bg-blend', _savedBlend);
-      const viewport = document.createElement('div');
-      viewport.className = 'mt-compare-cell-viewport';
-      const content = document.createElement('div');
-      content.className = 'mt-compare-cell-content';
-
-      // Clone source content with variant visibility
-      if (sourceContent) {
-        const freshClone = sourceContent.cloneNode(true);
-        const targetEl = opt.target && opt.target.el;
-
-        if (targetEl) {
-          // Show target element (remove mt-hidden)
-          const targetInClone = freshClone.querySelector(`#${CSS.escape(targetEl)}`);
-          if (targetInClone) targetInClone.classList.remove('mt-hidden');
-
-          // Show only this variant, hide others
-          variantKeys.forEach(vk => {
-            const varEl = freshClone.querySelector(`#${CSS.escape(targetEl + '-' + vk)}`);
-            if (varEl) varEl.style.display = (vk === key) ? '' : 'none';
-          });
-
-          // baseHtml: wrap variant content in shared layout
-          if (opt.baseHtml) {
-            const baseContainer = document.createElement('div');
-            baseContainer.innerHTML = opt.baseHtml;
-            const slot = baseContainer.querySelector('[data-variant]');
-            if (slot) {
-              const visibleVariant = freshClone.querySelector(`#${CSS.escape(targetEl + '-' + key)}`);
-              if (visibleVariant) {
-                while (visibleVariant.firstChild) slot.appendChild(visibleVariant.firstChild);
-                slot.removeAttribute('data-variant');
-              }
-            }
-            const targetInClone = freshClone.querySelector(`#${CSS.escape(targetEl)}`);
-            if (targetInClone) {
-              targetInClone.innerHTML = '';
-              while (baseContainer.firstChild) targetInClone.appendChild(baseContainer.firstChild);
-            }
-          }
-        }
-
-        // Strip view title/description (repeated in every cell)
-        freshClone.querySelectorAll(':scope > h1, :scope > h2, :scope > p').forEach(el => {
-          if (!el.querySelector('[id]')) el.remove();
-        });
-
-        // Strip IDs to prevent collisions
-        freshClone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-        freshClone.removeAttribute('id');
-
-        content.appendChild(freshClone);
-      }
-
-      viewport.appendChild(content);
-      canvasArea.appendChild(viewport);
-      cell.appendChild(canvasArea);
-      grid.appendChild(cell);
-
-      // Create CompareCanvas instance
-      const cellObj = { key, label, canvas: null, element: cell };
-      const cc = new CompareCanvas(cell, (source) => {
-        this._focusedCell = cellObj;
-        if (this.syncZoom) this.syncZoomToAll(source);
-        zoomDisplay.textContent = `${Math.round(source.zoom * 100)}%`;
-      });
-      cellObj.canvas = cc;
-      this.cells.push(cellObj);
-    });
-
-    document.body.appendChild(overlay);
-    this.overlayEl = overlay;
-
-    // Auto-pick best layout based on content size (only if no manual override saved)
-    if (this._autoLayout) {
-      this.autoPickLayout(grid);
-    }
-  },
-
-  destroyGrid() {
-    this.cells.forEach(c => c.canvas.destroy());
-    if (this._resizeHandler) {
-      window.removeEventListener('resize', this._resizeHandler);
-      this._resizeHandler = null;
-    }
-    if (this.overlayEl) {
-      this.overlayEl.remove();
-      this.overlayEl = null;
-    }
-  },
-
-  syncZoomToAll(source) {
-    this.cells.forEach(c => {
-      if (c.canvas === source || c.canvas._syncing) return;
-      c.canvas._syncing = true;
-      c.canvas.zoom = source.zoom;
-      c.canvas.panX = source.panX;
-      c.canvas.panY = source.panY;
-      c.canvas.updateTransform();
-      c.canvas._syncing = false;
-    });
-  },
-};
-
-/* ============================================================
-   CANVAS WORKSPACE
-   ============================================================ */
-class CanvasWorkspace {
-  constructor(container, config = {}) {
-    this.container = container;
-    this.viewport = container.querySelector('.mt-canvas-viewport');
-    this.content = container.querySelector('.mt-canvas-content');
-    if (!this.viewport || !this.content) {
-      console.error('[engine] Canvas workspace requires .mt-canvas-viewport and .mt-canvas-content elements');
-      return;
-    }
-    this.config = {
-      minZoom: config.minZoom || 0.25,
-      maxZoom: config.maxZoom || 2.0,
-      zoomStep: config.zoomStep || 0.1,
-      fineZoomStep: config.fineZoomStep || 0.02,
-      storageKey: config.storageKey || 'mockup-canvas-state'
-    };
-    this.zoom = 1.0;
-    this.panX = 0;
-    this.panY = 0;
-    this.isPanning = false;
-    this.isSpaceHeld = false;
-    this.lastMouseX = 0;
-    this.lastMouseY = 0;
-    this._pinchStartDist = 0;
-    this._pinchStartZoom = 1;
-    this._pinchCenter = null;
-    this._touchPanning = false;
-    this._lastTouchX = 0;
-    this._lastTouchY = 0;
-    this.attachEventListeners();
-    if (!this.loadState()) {
-      this.centerContent();
-    }
-    this.updateTransform();
-    this.updateZoomUI();
-  }
-
-  setZoom(level, centerX = null, centerY = null) {
-    const oldZoom = this.zoom;
-    this.zoom = Math.max(this.config.minZoom, Math.min(this.config.maxZoom, level));
-    if (centerX !== null && centerY !== null) {
-      const zoomDelta = this.zoom / oldZoom;
-      this.panX = centerX - (centerX - this.panX) * zoomDelta;
-      this.panY = centerY - (centerY - this.panY) * zoomDelta;
-    }
-    this.updateTransform();
-    this.updateZoomUI();
-    this.saveState();
-  }
-
-  zoomIn() {
-    const r = this.container.getBoundingClientRect();
-    this.setZoom(this.zoom + this.config.zoomStep, r.width / 2, r.height / 2);
-  }
-  zoomOut() {
-    const r = this.container.getBoundingClientRect();
-    this.setZoom(this.zoom - this.config.zoomStep, r.width / 2, r.height / 2);
-  }
-
-  centerContent() {
-    const vRect = this.container.getBoundingClientRect();
-    const cw = this.content.scrollWidth;
-    const ch = this.content.scrollHeight;
-    this.panX = (vRect.width - cw * this.zoom) / 2;
-    this.panY = (vRect.height - ch * this.zoom) / 2;
-  }
-
-  reset() {
-    const r = this.container.getBoundingClientRect();
-    const oldZoom = this.zoom;
-    this.zoom = 1.0;
-    // Preserve viewport center during zoom change
-    if (oldZoom !== 1.0) {
-      const zoomDelta = this.zoom / oldZoom;
-      const centerX = r.width / 2;
-      const centerY = r.height / 2;
-      this.panX = centerX - (centerX - this.panX) * zoomDelta;
-      this.panY = centerY - (centerY - this.panY) * zoomDelta;
-    }
-    // Clear any scroll offset caused by scrollIntoView
-    this.container.scrollTop = 0;
-    this.container.scrollLeft = 0;
-    this.updateTransform();
-    this.updateZoomUI();
-    this.saveState();
-  }
-
-  setPan(x, y) {
-    const vw = this.container.clientWidth;
-    const vh = this.container.clientHeight;
-    const cw = this.content.scrollWidth * this.zoom;
-    const ch = this.content.scrollHeight * this.zoom;
-    const margin = 0.1; // 10% of content must stay visible
-    this.panX = Math.max(-cw * (1 - margin), Math.min(vw * (1 - margin), x));
-    this.panY = Math.max(-ch * (1 - margin), Math.min(vh * (1 - margin), y));
-    this.updateTransform();
-    this.saveState();
-  }
-
-  updateTransform() {
-    if (this.viewport) {
-      this.viewport.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
-    }
-  }
-
-  updateZoomUI() {
-    const zoomLevel = this.container.querySelector('.mt-zoom-level');
-    if (zoomLevel) zoomLevel.textContent = `${Math.round(this.zoom * 100)}%`;
-    const zoomInBtn = this.container.querySelector('[data-zoom-in]');
-    const zoomOutBtn = this.container.querySelector('[data-zoom-out]');
-    if (zoomInBtn) zoomInBtn.disabled = this.zoom >= this.config.maxZoom;
-    if (zoomOutBtn) zoomOutBtn.disabled = this.zoom <= this.config.minZoom;
-  }
-
-  saveState() {
-    try {
-      localStorage.setItem(this.config.storageKey, JSON.stringify({
-        zoom: this.zoom, panX: this.panX, panY: this.panY
-      }));
-    } catch (e) { /* quota exceeded */ }
-  }
-
-  loadState() {
-    try {
-      const saved = localStorage.getItem(this.config.storageKey);
-      if (saved) {
-        const state = JSON.parse(saved);
-        this.zoom = state.zoom || 1.0;
-        this.panX = state.panX !== undefined ? state.panX : 0;
-        this.panY = state.panY !== undefined ? state.panY : 0;
-        return true;
-      }
-    } catch (e) { /* corrupted data */ }
-    return false;
-  }
-
-  attachEventListeners() {
-    this.container.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
-    this.container.addEventListener('dblclick', this.handleDoubleClick.bind(this));
-    this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    this.container.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
-    this.container.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
-    this.container.addEventListener('touchend', this.handleTouchEnd.bind(this));
-    document.addEventListener('mousemove', this.handleMouseMove.bind(this));
-    document.addEventListener('mouseup', this.handleMouseUp.bind(this));
-    document.addEventListener('keydown', this.handleKeyDown.bind(this));
-    document.addEventListener('keyup', this.handleKeyUp.bind(this));
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && this.isSpaceHeld) {
-        this.isSpaceHeld = false;
-        this.container.classList.remove('mt-space-held');
-      }
-    });
-    const zoomInBtn = this.container.querySelector('[data-zoom-in]');
-    const zoomOutBtn = this.container.querySelector('[data-zoom-out]');
-    const resetBtn = this.container.querySelector('[data-zoom-reset]');
-    if (zoomInBtn) zoomInBtn.addEventListener('click', () => this.zoomIn());
-    if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => this.zoomOut());
-    if (resetBtn) resetBtn.addEventListener('click', () => this.reset());
-  }
-
-  handleWheel(e) {
-    e.preventDefault();
-    if (e.ctrlKey || e.metaKey) {
-      // Pinch-to-zoom (trackpad) or Ctrl+wheel (mouse)
-      const delta = e.deltaY > 0 ? -1 : 1;
-      const step = e.altKey ? this.config.fineZoomStep : this.config.zoomStep;
-      const rect = this.container.getBoundingClientRect();
-      this.setZoom(this.zoom + (delta * step), e.clientX - rect.left, e.clientY - rect.top);
-    } else {
-      // Two-finger scroll (trackpad) or mouse wheel without modifier → pan
-      let dx = e.deltaX, dy = e.deltaY;
-      if (e.deltaMode === 1) { dx *= 16; dy *= 16; }       // LINE mode
-      else if (e.deltaMode === 2) { dx *= 100; dy *= 100; } // PAGE mode
-      this.setPan(this.panX - dx, this.panY - dy);
-    }
-  }
-
-  handleDoubleClick(e) {
-    if (e.target === this.container || e.target === this.viewport || e.target === this.content) {
-      this.reset();
-    }
-  }
-
-  handleMouseDown(e) {
-    const isEmptySpace = e.target === this.container || e.target === this.viewport || e.target === this.content;
-    if (e.button === 1 || (e.button === 0 && (isEmptySpace || this.isSpaceHeld))) {
-      e.preventDefault();
-      this.isPanning = true;
-      this.lastMouseX = e.clientX;
-      this.lastMouseY = e.clientY;
-      this.container.classList.add('mt-panning');
-    }
-  }
-
-  handleMouseMove(e) {
-    if (this.isPanning) {
-      this.setPan(this.panX + e.clientX - this.lastMouseX, this.panY + e.clientY - this.lastMouseY);
-      this.lastMouseX = e.clientX;
-      this.lastMouseY = e.clientY;
-    }
-  }
-
-  handleMouseUp() {
-    if (this.isPanning) {
-      this.isPanning = false;
-      this.container.classList.remove('mt-panning');
-    }
-  }
-
-  handleKeyDown(e) {
-    if (!this.container.classList.contains('active')) return;
-    if (e.code === 'Space' && !this.isSpaceHeld && !this.isInputFocused()) {
-      e.preventDefault();
-      this.isSpaceHeld = true;
-      this.container.classList.add('mt-space-held');
-    }
-    if ((e.ctrlKey || e.metaKey) && !this.isInputFocused()) {
-      if (e.key === '=' || e.key === '+') { e.preventDefault(); this.zoomIn(); }
-      else if (e.key === '-' || e.key === '_') { e.preventDefault(); this.zoomOut(); }
-      else if (e.key === '0') { e.preventDefault(); this.reset(); }
-      else if (e.key === '1') {
-        e.preventDefault();
-        const r = this.container.getBoundingClientRect();
-        this.setZoom(1.0, r.width / 2, r.height / 2);
-      }
-      else if (e.key === '9') {
-        e.preventDefault();
-        const r = this.container.getBoundingClientRect();
-        this.setZoom(this.config.maxZoom, r.width / 2, r.height / 2);
-      }
-    }
-  }
-
-  handleKeyUp(e) {
-    if (e.code === 'Space' && this.isSpaceHeld) {
-      this.isSpaceHeld = false;
-      this.container.classList.remove('mt-space-held');
-    }
-  }
-
-  handleTouchStart(e) {
-    const touches = e.touches;
-    if (touches.length === 2) {
-      e.preventDefault();
-      this._pinchStartDist = this._getTouchDistance(touches);
-      this._pinchStartZoom = this.zoom;
-      this._pinchCenter = this._getTouchCenter(touches);
-    } else if (touches.length === 1) {
-      const t = touches[0];
-      const target = document.elementFromPoint(t.clientX, t.clientY);
-      const isCanvas = target && (target === this.container || target.closest('.mt-view') === this.container);
-      if (isCanvas) {
-        e.preventDefault();
-        this._touchPanning = true;
-        this._lastTouchX = t.clientX;
-        this._lastTouchY = t.clientY;
-      }
-    }
-  }
-
-  handleTouchMove(e) {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const dist = this._getTouchDistance(e.touches);
-      const scale = dist / this._pinchStartDist;
-      const newZoom = this._pinchStartZoom * scale;
-      const center = this._getTouchCenter(e.touches);
-      const rect = this.container.getBoundingClientRect();
-      this.setZoom(newZoom, center.x - rect.left, center.y - rect.top);
-    } else if (this._touchPanning && e.touches.length === 1) {
-      e.preventDefault();
-      const t = e.touches[0];
-      this.setPan(
-        this.panX + t.clientX - this._lastTouchX,
-        this.panY + t.clientY - this._lastTouchY
-      );
-      this._lastTouchX = t.clientX;
-      this._lastTouchY = t.clientY;
-    }
-  }
-
-  handleTouchEnd(e) {
-    if (e.touches.length < 2) {
-      this._pinchStartDist = 0;
-    }
-    if (e.touches.length === 0) {
-      this._touchPanning = false;
-    }
-  }
-
-  _getTouchDistance(touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  _getTouchCenter(touches) {
-    return {
-      x: (touches[0].clientX + touches[1].clientX) / 2,
-      y: (touches[0].clientY + touches[1].clientY) / 2,
-    };
-  }
-
-  isInputFocused() { return isInputFocused(); }
-}
-
 function initCanvasViews() {
   const canvasCfg = CONFIG.canvas || {};
   const defaultBg = canvasCfg.grid === false ? 'none' : 'checker';
   const savedBg = localStorage.getItem(CONFIG.storageKey + '-canvas-bg') || defaultBg;
   const savedSize = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-size') || 'md';
   const savedColor = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-color') || '';
-  const savedOpacity = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity') || '1';
+  const savedOpacity = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-opacity') || '0.1';
   const savedBlend = localStorage.getItem(CONFIG.storageKey + '-canvas-bg-blend') || '';
   document.querySelectorAll('.mt-view').forEach(viewEl => {
-    const viewId = viewEl.id.replace('view-', '');
     // Apply background settings to view element
     viewEl.classList.add('mt-bg-' + savedBg);
     if (savedBg !== 'none') viewEl.classList.add('mt-bg-' + savedSize);
     if (savedColor) viewEl.style.setProperty('--bg-color', savedColor);
-    if (savedOpacity !== '1') viewEl.style.setProperty('--bg-opacity', savedOpacity);
+    viewEl.style.setProperty('--bg-opacity', savedOpacity);
     if (savedBlend) viewEl.style.setProperty('--bg-blend', savedBlend);
     // Wrap existing children in canvas structure
     const viewport = document.createElement('div');
@@ -3875,20 +3053,6 @@ function initCanvasViews() {
     content.appendChild(item);
     viewport.appendChild(content);
     viewEl.appendChild(viewport);
-
-    // Inject zoom controls
-    const controls = document.createElement('div');
-    controls.className = 'mt-zoom-controls';
-    controls.innerHTML = '<button data-zoom-out aria-label="Zoom out">\u2212</button><div class="mt-zoom-level">100%</div><button data-zoom-in aria-label="Zoom in">+</button><button data-zoom-reset aria-label="Reset zoom">\u27F2</button>';
-    viewEl.appendChild(controls);
-
-    // Instantiate workspace
-    const storageKey = `${CONFIG.storageKey}-canvas-${viewId}`;
-    const workspace = new CanvasWorkspace(viewEl, {
-      ...canvasCfg,
-      storageKey
-    });
-    viewEl._canvasWorkspace = workspace;
   });
 }
 
@@ -4007,9 +3171,21 @@ if (!CONFIG.prompt) {
 if (CONFIG.combos === undefined) CONFIG.combos = [];
 if (CONFIG.compareOnly === undefined) CONFIG.compareOnly = true;
 CONFIG._originalCompareOnly = CONFIG.compareOnly;
-// Override compareOnly from saved preference
-const savedCompareOnly = localStorage.getItem(CONFIG.storageKey + '-compare-only');
-if (savedCompareOnly !== null) CONFIG.compareOnly = savedCompareOnly === '1';
+
+// Migrate old localStorage key to new interface key
+const _oldCompareKey = localStorage.getItem(CONFIG.storageKey + '-compare-only');
+if (_oldCompareKey !== null && localStorage.getItem(CONFIG.storageKey + '-interface') === null) {
+  localStorage.setItem(CONFIG.storageKey + '-interface', _oldCompareKey === '1' ? 'v2' : 'v1');
+  localStorage.removeItem(CONFIG.storageKey + '-compare-only');
+}
+
+// Resolve interface version: localStorage override > CONFIG.compareOnly mapping
+const _savedInterface = localStorage.getItem(CONFIG.storageKey + '-interface');
+if (_savedInterface) {
+  CONFIG.compareOnly = _savedInterface === 'v2';
+} else {
+  // No saved preference — use CONFIG default
+}
 
 validateConfig(CONFIG);
 window.CONFIG = CONFIG;
@@ -4021,14 +3197,24 @@ const applyFn = (typeof window.applyOptions === 'function')
   : generateApplyOptions(CONFIG);
 initTabs();
 initCanvasViews();
+
+// Attach options-change listener synchronously (before microtask fires initial event)
 document.querySelector('options-panel').addEventListener('options-change', e => {
   applyFn(e.detail.active, e.detail.variants);
 });
 
-// compareOnly: auto-open compare mode on boot
-if (CONFIG.compareOnly && CONFIG.options.length > 0) {
-  const activeView = document.querySelector('.mt-view.active');
-  const viewId = activeView ? activeView.id.replace('view-', '') : null;
-  const firstOpt = CONFIG.options.find(o => o.target && o.target.view === viewId) || CONFIG.options[0];
-  if (firstOpt) CompareMode.open(firstOpt.id);
-}
+// Dynamically load interface version and boot
+const _interfaceVersion = CONFIG.compareOnly ? 'v2' : 'v1';
+(async () => {
+  try {
+    await loadInterface(_interfaceVersion);
+    console.log(`[engine] Loaded interface ${_interfaceVersion}`);
+  } catch (e) {
+    console.error(`[engine] Failed to load interface ${_interfaceVersion}:`, e);
+  }
+
+  // Interface module registers window._engineInterface — call init
+  if (window._engineInterface) {
+    window._engineInterface.init(CONFIG);
+  }
+})();
