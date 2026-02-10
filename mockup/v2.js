@@ -87,6 +87,28 @@ class CompareCanvas {
     this._panning = false;
     document.removeEventListener('mousemove', this._onMouseMoveBound);
     document.removeEventListener('mouseup', this._onMouseUpBound);
+    this._snapBackIfOffscreen();
+  }
+
+  _snapBackIfOffscreen() {
+    const contentEl = this.viewport.querySelector('.mt-compare-cell-content');
+    if (!contentEl) return;
+    const cw = contentEl.scrollWidth * this.zoom;
+    const ch = contentEl.scrollHeight * this.zoom;
+    const canvasW = this.canvas.clientWidth;
+    const canvasH = this.canvas.clientHeight;
+    // Check if any part of the content rectangle intersects the canvas
+    const visible =
+      this.panX + cw > 0 && this.panX < canvasW &&
+      this.panY + ch > 0 && this.panY < canvasH;
+    if (!visible) {
+      this.viewport.style.transition = 'transform 300ms ease';
+      this.centerContent();
+      this.viewport.addEventListener('transitionend', () => {
+        this.viewport.style.transition = '';
+      }, { once: true });
+      if (!this._syncing && this.onZoomChange) this.onZoomChange(this);
+    }
   }
 
   destroy() {
