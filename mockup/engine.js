@@ -2298,8 +2298,14 @@ class OptionsPanel extends HTMLElement {
 
   initAutoExpand() {
     let hoverTimer = null;
-    this.addEventListener('mouseenter', () => {
+    this.addEventListener('mouseenter', (e) => {
       if (!this.panelCollapsed) return;
+      // Don't auto-expand when hovering the toolbar (collapse button area)
+      const toolbar = this.shadowRoot.querySelector('.panel-toolbar');
+      if (toolbar) {
+        const tbRect = toolbar.getBoundingClientRect();
+        if (e.clientY <= tbRect.bottom) return;
+      }
       hoverTimer = setTimeout(() => {
         this.hoverExpanded = true;
         this.applyPanelLayout();
