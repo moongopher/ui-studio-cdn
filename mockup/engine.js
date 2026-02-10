@@ -107,6 +107,9 @@ function switchView(viewId) {
   const tab = document.getElementById('mt-view-tabs').querySelector(`[data-view="${viewId}"]`);
   if (tab) tab.classList.add('active');
   if (target && target._canvasWorkspace) target._canvasWorkspace.updateTransform();
+  // Persist active view
+  const panel = document.querySelector('options-panel');
+  if (panel) panel.saveState();
 }
 
 // --- View Tabs ---
@@ -171,6 +174,16 @@ class OptionsPanel extends HTMLElement {
 
   // --- State Persistence ---
   saveState() {
+    // Capture collapsed groups from DOM
+    const collapsedGroups = [];
+    if (this.shadowRoot) {
+      this.shadowRoot.querySelectorAll('.group-label.collapsed').forEach(el => {
+        collapsedGroups.push(el.dataset.group);
+      });
+    }
+    // Capture active view tab
+    const activeViewEl = document.querySelector('.mt-view.active');
+    const activeView = activeViewEl ? activeViewEl.id.replace('view-', '') : null;
     const state = {
       active: [...this.activeOptions],
       notes: this.optionNotes,
@@ -180,6 +193,8 @@ class OptionsPanel extends HTMLElement {
       panelMode: this.panelMode,
       guideStep: this.guideStep,
       guideDecisions: this.guideDecisions,
+      collapsedGroups,
+      activeView,
     };
     try {
       localStorage.setItem(CONFIG.storageKey, JSON.stringify(state));
@@ -199,6 +214,8 @@ class OptionsPanel extends HTMLElement {
       if (state.panelMode) this.panelMode = state.panelMode;
       if (typeof state.guideStep === 'number') this.guideStep = state.guideStep;
       if (state.guideDecisions) this.guideDecisions = state.guideDecisions;
+      if (state.collapsedGroups) this._pendingCollapsedGroups = state.collapsedGroups;
+      if (state.activeView) this._pendingActiveView = state.activeView;
     } catch (e) { /* corrupted data */ }
   }
 
@@ -2342,8 +2359,19 @@ class OptionsPanel extends HTMLElement {
         label.classList.toggle('collapsed');
         const options = body.querySelector(`[data-group-options="${label.dataset.group}"]`);
         if (options) options.classList.toggle('collapsed');
+        this.saveState();
       });
     });
+    // Restore collapsed groups from saved state
+    if (this._pendingCollapsedGroups) {
+      this._pendingCollapsedGroups.forEach(group => {
+        const label = body.querySelector(`.group-label[data-group="${group}"]`);
+        const options = body.querySelector(`[data-group-options="${group}"]`);
+        if (label) label.classList.add('collapsed');
+        if (options) options.classList.add('collapsed');
+      });
+      this._pendingCollapsedGroups = null;
+    }
   }
 
   initCopyPreview() {
@@ -3197,6 +3225,13 @@ const applyFn = (typeof window.applyOptions === 'function')
   : generateApplyOptions(CONFIG);
 initTabs();
 initCanvasViews();
+
+// Restore active view from saved state
+const _panel = document.querySelector('options-panel');
+if (_panel && _panel._pendingActiveView) {
+  switchView(_panel._pendingActiveView);
+  _panel._pendingActiveView = null;
+}
 
 // Attach options-change listener synchronously (before microtask fires initial event)
 document.querySelector('options-panel').addEventListener('options-change', e => {

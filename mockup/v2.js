@@ -592,12 +592,12 @@ const CompareMode = {
 window._engineInterface = {
   init(config) {
     // Canvas DOM structure already set up by engine.js initCanvasViews()
-    // Auto-open compare mode on boot
+    // Auto-open compare mode on boot — use guide step if available
     if (config.options.length > 0) {
-      const activeView = document.querySelector('.mt-view.active');
-      const viewId = activeView ? activeView.id.replace('view-', '') : null;
-      const firstOpt = config.options.find(o => o.target && o.target.view === viewId) || config.options[0];
-      if (firstOpt) CompareMode.open(firstOpt.id);
+      const panel = document.querySelector('options-panel');
+      const guideStep = panel ? panel.guideStep : 0;
+      const opt = config.options[guideStep] || config.options[0];
+      if (opt) CompareMode.open(opt.id);
     }
   },
   open(optId) { CompareMode.open(optId); },
