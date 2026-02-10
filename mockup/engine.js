@@ -2989,6 +2989,15 @@ class OptionsPanel extends HTMLElement {
       const clone = variantEl.cloneNode(true);
       clone.removeAttribute('id');
       clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+      // Strip crossfade inline styles that toggleVariant may have left on the element
+      clone.style.opacity = '';
+      clone.style.position = '';
+      clone.style.top = '';
+      clone.style.left = '';
+      clone.style.width = '';
+      clone.style.transition = '';
+      clone.style.pointerEvents = '';
+      clone.style.display = '';
 
       variantEl.style.display = prevDisplay;
 
