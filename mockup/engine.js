@@ -3273,6 +3273,12 @@ document.addEventListener('click', (e) => {
   const h = img.getAttribute('height') || 400;
   const seed = `${baseSeed}-${rotations[baseSeed]}`;
   img.src = `https://picsum.photos/seed/${seed}/${w}/${h}`;
+  wrap.classList.add('mt-photo-loading');
+  btn.disabled = true;
+  img.onload = img.onerror = () => {
+    wrap.classList.remove('mt-photo-loading');
+    btn.disabled = false;
+  };
   e.stopPropagation();
 });
 

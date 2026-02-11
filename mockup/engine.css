@@ -200,6 +200,12 @@ img[data-mt-photo] {
 .mt-photo-wrap:hover .mt-photo-rotate {
   opacity: 1;
 }
+@keyframes mt-photo-spin { to { transform: rotate(360deg); } }
+.mt-photo-loading .mt-photo-rotate {
+  opacity: 1;
+  animation: mt-photo-spin 0.8s linear infinite;
+  pointer-events: none;
+}
 
 /* --- Utility --- */
 .mt-hidden { display: none !important; }
