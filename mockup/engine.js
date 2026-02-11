@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.11';
+const ENGINE_VERSION = '0.12';
 
 // --- Dynamic interface loader ---
 const _scriptBase = document.currentScript.src.replace(/\/[^/]+$/, '/');
@@ -3229,6 +3229,53 @@ function generateApplyOptions(config) {
   };
 }
 
+// --- Auto-populate placeholder photos ---
+function populatePhotos(root, storageKey) {
+  const rotations = JSON.parse(localStorage.getItem(storageKey + '-photo-rotations') || '{}');
+  root.querySelectorAll('img[data-mt-photo]').forEach((img, i) => {
+    const w = img.getAttribute('width') || 600;
+    const h = img.getAttribute('height') || 400;
+    const baseSeed = img.alt ? img.alt.replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '') : `photo-${i}`;
+    const rot = rotations[baseSeed] || 0;
+    const seed = rot > 0 ? `${baseSeed}-${rot}` : baseSeed;
+    img.src = `https://picsum.photos/seed/${seed}/${w}/${h}`;
+    img.dataset.mtPhotoSeed = baseSeed;
+
+    // Wrap in container for rotate button if not already wrapped
+    if (!img.parentElement.classList.contains('mt-photo-wrap')) {
+      const wrap = document.createElement('span');
+      wrap.className = 'mt-photo-wrap';
+      img.parentNode.insertBefore(wrap, img);
+      wrap.appendChild(img);
+      const btn = document.createElement('button');
+      btn.className = 'mt-photo-rotate';
+      btn.type = 'button';
+      btn.title = 'Show different photo';
+      btn.textContent = '\u21BB';
+      wrap.appendChild(btn);
+    }
+  });
+}
+
+// Delegate rotate-button clicks (works in main view and compare clones)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.mt-photo-rotate');
+  if (!btn) return;
+  const wrap = btn.closest('.mt-photo-wrap');
+  const img = wrap && wrap.querySelector('img[data-mt-photo]');
+  if (!img || !window.CONFIG) return;
+  const key = window.CONFIG.storageKey + '-photo-rotations';
+  const rotations = JSON.parse(localStorage.getItem(key) || '{}');
+  const baseSeed = img.dataset.mtPhotoSeed;
+  rotations[baseSeed] = (rotations[baseSeed] || 0) + 1;
+  localStorage.setItem(key, JSON.stringify(rotations));
+  const w = img.getAttribute('width') || 600;
+  const h = img.getAttribute('height') || 400;
+  const seed = `${baseSeed}-${rotations[baseSeed]}`;
+  img.src = `https://picsum.photos/seed/${seed}/${w}/${h}`;
+  e.stopPropagation();
+});
+
 // --- Boot ---
 bootstrapFromMockup();
 const CONFIG = loadConfig();
@@ -3271,6 +3318,9 @@ if (_savedInterface) {
 
 validateConfig(CONFIG);
 window.CONFIG = CONFIG;
+
+// Populate placeholder photos now that views are in DOM
+populatePhotos(document, CONFIG.storageKey);
 
 customElements.define('options-panel', OptionsPanel);
 
