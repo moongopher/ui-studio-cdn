@@ -268,11 +268,11 @@ class OptionsPanel extends HTMLElement {
           <div class="guide-variants-section">
             <div class="guide-section-label">Choose style</div>
             <div class="guide-variant-cards"></div>
-            <div class="guide-generate-card">
+            <div class="guide-generate-card" tabindex="0" role="button">
               <div class="guide-generate-label">+ Generate more variants</div>
               <div class="guide-generate-hint">Describe what you want</div>
             </div>
-            <div class="guide-skip-card" data-gv-key="__skip__">
+            <div class="guide-skip-card" tabindex="0" role="button" data-gv-key="__skip__">
               <div class="guide-variant-label">Don\u2019t include</div>
             </div>
           </div>
@@ -1775,6 +1775,20 @@ class OptionsPanel extends HTMLElement {
     }
 
     /* --- Reduced Motion --- */
+    /* --- Focus styles for keyboard navigation --- */
+    [role="button"]:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--c-primary);
+      outline-offset: 2px;
+    }
+    .toggle-row:focus-visible {
+      outline-offset: -2px;
+      border-radius: var(--r-sm);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       :host, .panel, .panel-header, .panel-body, .copy-footer, .collapse-label, .panel-collapse-btn {
         transition-duration: 0s !important;
@@ -1811,7 +1825,7 @@ class OptionsPanel extends HTMLElement {
     let html = '';
     groupOrder.forEach(tag => {
       if (showGroups) {
-        html += `<div class="group-label" data-group="${this.esc(tag)}">${this.esc(viewMap[tag] || tag)}</div>`;
+        html += `<div class="group-label" tabindex="0" role="button" data-group="${this.esc(tag)}">${this.esc(viewMap[tag] || tag)}</div>`;
         html += `<div class="group-options" data-group-options="${this.esc(tag)}">`;
       }
       groups[tag].forEach(opt => {
@@ -1823,7 +1837,7 @@ class OptionsPanel extends HTMLElement {
         const isRecommended = !!opt.recommended;
 
         html += `<div class="toggle-item${isActive ? ' active expanded' : ''}${isRecommended ? ' recommended' : ''}" data-opt-id="${opt.id}">`;
-        html += `<div class="toggle-row">`;
+        html += `<div class="toggle-row" tabindex="0" role="button">`;
         html += `<span class="toggle-number">${opt.id}</span>`;
         html += `<span class="toggle-name">${this.esc(opt.name)}</span>`;
         if (isRecommended) html += `<span class="recommended-badge">Recommended</span>`;
@@ -1846,7 +1860,7 @@ class OptionsPanel extends HTMLElement {
         }
 
         html += `<div class="toggle-detail-actions">`;
-        html += `<div class="list-generate-card${hasNotes ? ' active' : ''}" data-generate-card="${opt.id}">+ Generate more variants</div>`;
+        html += `<div class="list-generate-card${hasNotes ? ' active' : ''}" tabindex="0" role="button" data-generate-card="${opt.id}">+ Generate more variants</div>`;
         html += `</div>`;
         html += `<textarea class="notes-textarea${hasNotes ? ' visible' : ''}" data-notes="${opt.id}" placeholder="Describe the variants you want generated...">${this.esc(noteText)}</textarea>`;
 
@@ -1864,6 +1878,17 @@ class OptionsPanel extends HTMLElement {
   bindEvents() {
     const root = this.shadowRoot;
     const body = root.querySelector('.panel-body');
+
+    // --- Keyboard a11y: Enter/Space triggers click on role="button" divs ---
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const el = e.target;
+        if (el.getAttribute('role') === 'button' && el.tagName !== 'BUTTON') {
+          e.preventDefault();
+          el.click();
+        }
+      }
+    });
 
     // --- Mode Pill ---
     root.querySelectorAll('.mode-pill-btn').forEach(btn => {
@@ -2643,7 +2668,7 @@ class OptionsPanel extends HTMLElement {
       Object.entries(opt.variants).forEach(([key, label]) => {
         const isRecVariant = opt.recommended && opt.recommendedVariant === key;
         const isSelected = decision === 'yes' && currentVariant === key;
-        cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-gv-key="${key}"><div class="guide-variant-thumb"></div><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
+        cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" tabindex="0" role="button" data-gv-key="${key}"><div class="guide-variant-thumb"></div><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
       });
       cardsEl.innerHTML = cardsHtml; // eslint-disable-line -- trusted template from CONFIG keys
       this._renderThumbs(opt, cardsEl);
