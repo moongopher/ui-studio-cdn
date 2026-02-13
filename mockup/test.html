@@ -29,10 +29,10 @@ window.MOCKUP = {
         "target": { "view": "main", "el": "dashboard-layout" },
         "recommended": true,
         "variants": {
-          "classic": "Classic",
-          "modern": "Modern",
-          "compact": "Compact",
-          "wide": "Wide"
+          "classic": { "label": "Classic", "pros": ["Familiar sidebar nav", "Clear hierarchy", "Easy to extend"], "cons": ["Uses horizontal space", "Sidebar can feel heavy"] },
+          "modern": { "label": "Modern", "pros": ["Clean top nav", "More content area", "Feels spacious"], "cons": ["Less nav items visible", "Needs responsive work"] },
+          "compact": { "label": "Compact", "pros": ["Maximum data density", "Fast scanning", "Minimal chrome"], "cons": ["Feels cramped at scale", "Less visual breathing room"] },
+          "wide": { "label": "Wide", "pros": ["Hero visual impact", "Great for dashboards", "Full-width metrics"], "cons": ["Tall header wastes space", "Fewer above-fold items"] }
         },
         "defaultVariant": "classic"
       },

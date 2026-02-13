@@ -178,6 +178,58 @@
 .mt-compare-cell-content {
   position: relative;
 }
+
+/* Recommended pill badge in cell header */
+.mt-compare-cell-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #8b5cf6;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: 6px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Pros/cons footer below canvas */
+.mt-compare-cell-footer {
+  border-top: 1px solid var(--c-border-light);
+  padding: var(--sp-2) var(--sp-3);
+  flex-shrink: 0;
+}
+.mt-compare-proscons {
+  display: flex;
+  border: 1px solid var(--c-border-light);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.mt-compare-pros {
+  flex: 1;
+  padding: var(--sp-2) var(--sp-3);
+  background: #f0fdf4;
+  color: #334155;
+}
+.mt-compare-cons {
+  flex: 1;
+  padding: var(--sp-2) var(--sp-3);
+  background: #fef2f2;
+  color: #334155;
+  border-left: 1px solid var(--c-border-light);
+}
+.mt-compare-proscons-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.mt-compare-pros .mt-compare-proscons-label { color: #16a34a; }
+.mt-compare-cons .mt-compare-proscons-label { color: #dc2626; }
+
 body.mt-compare-open #mt-views,
 body.mt-compare-open #mt-view-tabs {
   display: none;

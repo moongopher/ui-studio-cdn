@@ -4,6 +4,9 @@
 
 const ENGINE_VERSION = '0.12';
 
+/** Extract label from variant value (string or {label, pros, cons} object) */
+function _vLabel(v) { return typeof v === 'object' && v !== null ? v.label : String(v || ''); }
+
 // --- Dynamic interface loader ---
 const _scriptBase = document.currentScript.src.replace(/\/[^/]+$/, '/');
 
@@ -1851,7 +1854,8 @@ class OptionsPanel extends HTMLElement {
 
         if (hasVariants) {
           html += `<div class="variant-row">`;
-          Object.entries(opt.variants).forEach(([key, label]) => {
+          Object.entries(opt.variants).forEach(([key, val]) => {
+            const label = _vLabel(val);
             const isRecVariant = isRecommended && opt.recommendedVariant === key;
             html += `<button class="variant-btn${currentVariant === key ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-variant-opt="${opt.id}" data-variant-key="${key}">${this.esc(label)}</button>`;
           });
@@ -2666,7 +2670,8 @@ class OptionsPanel extends HTMLElement {
     if (hasVariants) {
       varSection.style.display = '';
       let cardsHtml = '';
-      Object.entries(opt.variants).forEach(([key, label]) => {
+      Object.entries(opt.variants).forEach(([key, val]) => {
+        const label = _vLabel(val);
         const isRecVariant = opt.recommended && opt.recommendedVariant === key;
         const isSelected = decision === 'yes' && currentVariant === key;
         cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" tabindex="0" role="button" data-gv-key="${key}"><div class="guide-variant-thumb"></div><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
@@ -2783,7 +2788,7 @@ class OptionsPanel extends HTMLElement {
     CONFIG.options.forEach((opt, idx) => {
       const isActive = this.activeOptions.has(opt.id);
       const variantLabel = (isActive && opt.variants && this.optionVariants[opt.id])
-        ? (opt.variants[this.optionVariants[opt.id]] || '') : '';
+        ? _vLabel(opt.variants[this.optionVariants[opt.id]]) : '';
       html += `<div class="guide-summary-item" data-summary-step="${idx}">`;
       html += `<span class="guide-summary-check ${isActive ? 'on' : 'off'}">${isActive ? '&#10003;' : '&#10007;'}</span>`;
       html += `<span class="guide-summary-name${isActive ? '' : ' off'}">${this.esc(opt.name)}</span>`;
@@ -2873,7 +2878,7 @@ class OptionsPanel extends HTMLElement {
     selected.forEach(opt => {
       text += `- **Option ${opt.id}: ${opt.name}**\n`;
       if (opt.variants && this.optionVariants[opt.id]) {
-        const label = opt.variants[this.optionVariants[opt.id]] || this.optionVariants[opt.id];
+        const label = _vLabel(opt.variants[this.optionVariants[opt.id]]) || this.optionVariants[opt.id];
         text += `  - Chosen variant: ${label}\n`;
       }
       if (hasAnyNotes && this.optionNotes[opt.id]) {

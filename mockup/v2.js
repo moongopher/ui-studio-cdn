@@ -2,6 +2,9 @@
    V2 INTERFACE — Compare Grid
    ============================================================ */
 
+/** Extract label from variant value (string or {label, pros, cons} object) */
+function _vLabel(v) { return typeof v === 'object' && v !== null ? v.label : String(v); }
+
 class CompareCanvas {
   constructor(cellEl, onZoomChange) {
     this.cell = cellEl;
@@ -124,6 +127,7 @@ const CompareMode = {
   optionId: null,
   option: null,
   syncZoom: true,
+  showProscons: true,
   cells: [],
   overlayEl: null,
   _escHandler: null,
@@ -131,9 +135,29 @@ const CompareMode = {
   _layoutIndex: 0,
 
   buildLayoutSteps(totalVariants) {
+    const panelW = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
+    const panelH = window.innerHeight - 48;
+    const isLandscape = panelW >= panelH;
+    const seen = new Set();
     const steps = [];
-    for (let cols = 1; cols <= totalVariants; cols++) {
-      steps.push({ cols });
+
+    for (let n = 1; n <= totalVariants; n++) {
+      let bestCols = 1, bestScore = -Infinity;
+      for (let c = 1; c <= n; c++) {
+        const r = Math.ceil(n / c);
+        const cellW = panelW / c;
+        const cellH = panelH / r;
+        const cellAspect = cellW / cellH;
+        const score = -Math.abs(Math.log(cellAspect / (4 / 3)));
+        const bias = isLandscape ? 0.1 * c : -0.1 * c;
+        if (score + bias > bestScore) { bestScore = score + bias; bestCols = c; }
+      }
+      const r = Math.ceil(n / bestCols);
+      const key = bestCols + 'x' + r;
+      if (!seen.has(key)) {
+        seen.add(key);
+        steps.push({ cols: bestCols, rows: r, visible: n });
+      }
     }
     return steps;
   },
@@ -179,12 +203,10 @@ const CompareMode = {
     let bestFitAt100 = -1;
     let bestSubScale = 0;
     let bestSubIdx = 0;
-    const totalVariants = this.cells.length;
     for (let i = 0; i < this._layoutSteps.length; i++) {
       const step = this._layoutSteps[i];
-      const rows = Math.ceil(totalVariants / step.cols);
       const cellW = (panelW - gapSize * (step.cols - 1) - 24) / step.cols;
-      const availCellH = (totalH - padV - gapSize * (rows - 1) - cellBorder * rows) / rows - headerH;
+      const availCellH = (totalH - padV - gapSize * (step.rows - 1) - cellBorder * step.rows) / step.rows - headerH;
       const scaleX = cellW / contentW;
       const scaleY = availCellH / contentH;
       const fitScale = Math.min(scaleX, scaleY);
@@ -204,15 +226,14 @@ const CompareMode = {
   applyLayout(grid) {
     const step = this._layoutSteps[this._layoutIndex];
     if (!step) return;
-    const rows = Math.max(1, Math.ceil(this.cells.length / step.cols));
-    grid.style.gridTemplateColumns = `repeat(${step.cols}, minmax(0, 1fr))`;
+    grid.style.gridTemplateColumns = `repeat(${step.cols}, 1fr)`;
     const toolbar = document.querySelector('.mt-compare-toolbar');
     const toolbarH = toolbar ? toolbar.offsetHeight : 53;
     const padV = 24;
     const gap = 12;
     const cellBorder = 2;
-    const availH = window.innerHeight - toolbarH - padV - (gap * (rows - 1)) - (cellBorder * rows);
-    const rowH = Math.max(120, Math.floor(availH / rows));
+    const availH = window.innerHeight - toolbarH - padV - (gap * (step.rows - 1)) - (cellBorder * step.rows);
+    const rowH = Math.floor(availH / step.rows);
     grid.style.gridAutoRows = rowH + 'px';
   },
 
@@ -220,7 +241,8 @@ const CompareMode = {
     if (this._colCountDisplay) {
       const step = this._layoutSteps[this._layoutIndex];
       if (!step) return;
-      this._colCountDisplay.textContent = step.cols + ' col' + (step.cols !== 1 ? 's' : '');
+      const total = step.cols * step.rows;
+      this._colCountDisplay.textContent = total + ' card' + (total !== 1 ? 's' : '');
     }
   },
 
@@ -352,6 +374,23 @@ const CompareMode = {
     syncLabel.appendChild(document.createTextNode('Sync zoom'));
     toolbar.appendChild(syncLabel);
 
+    // Pros/cons toggle (only show if any variant has pros/cons)
+    const hasAnyProscons = variantKeys.some(k => {
+      const v = opt.variants[k];
+      return typeof v === 'object' && v !== null && (v.pros || v.cons);
+    });
+    let prosconsCb = null;
+    if (hasAnyProscons) {
+      const prosconsLabel = document.createElement('label');
+      prosconsLabel.className = 'mt-compare-sync-label';
+      prosconsCb = document.createElement('input');
+      prosconsCb.type = 'checkbox';
+      prosconsCb.checked = this.showProscons;
+      prosconsLabel.appendChild(prosconsCb);
+      prosconsLabel.appendChild(document.createTextNode('Pros/Cons'));
+      toolbar.appendChild(prosconsLabel);
+    }
+
     const zoomGroup = document.createElement('div');
     zoomGroup.className = 'mt-compare-btn-group';
     const zoomOut = document.createElement('button');
@@ -411,6 +450,14 @@ const CompareMode = {
         zoomDisplay.textContent = `${Math.round(this.cells[0].canvas.zoom * 100)}%`;
       }
     });
+    if (prosconsCb) {
+      prosconsCb.addEventListener('change', (e) => {
+        this.showProscons = e.target.checked;
+        overlay.querySelectorAll('.mt-compare-cell-footer').forEach(f => {
+          f.style.display = this.showProscons ? '' : 'none';
+        });
+      });
+    }
     closeBtn.addEventListener('click', () => this.close());
 
     const applyZoomAction = (fn) => {
@@ -437,20 +484,21 @@ const CompareMode = {
 
     this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
     const savedIdx = this.loadLayoutIndex(this.optionId);
+    this._autoLayout = (savedIdx === null);
     if (savedIdx !== null && savedIdx >= 0 && savedIdx < this._layoutSteps.length) {
       this._layoutIndex = savedIdx;
     } else {
-      const defaultCols = window.matchMedia('(max-width: 768px)').matches ? 1 : Math.min(2, this._layoutSteps.length);
-      this._layoutIndex = Math.max(0, defaultCols - 1);
-      this.saveLayoutIndex();
+      this._layoutIndex = this._layoutSteps.length - 1;
     }
 
     minusBtn.addEventListener('click', () => {
       if (this._layoutIndex <= 0) return;
+      this._autoLayout = false;
       this._layoutIndex--; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
     plusBtn.addEventListener('click', () => {
       if (this._layoutIndex >= this._layoutSteps.length - 1) return;
+      this._autoLayout = false;
       this._layoutIndex++; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
 
@@ -459,6 +507,14 @@ const CompareMode = {
     this.applyLayout(grid);
     this.updateLayoutDisplay();
     this._resizeHandler = () => {
+      const oldVisible = this._layoutSteps[this._layoutIndex].visible;
+      this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
+      if (this._autoLayout) {
+        this.autoPickLayout(grid);
+        return;
+      }
+      this._layoutIndex = this._layoutSteps.findIndex(s => s.visible >= oldVisible);
+      if (this._layoutIndex < 0) this._layoutIndex = this._layoutSteps.length - 1;
       this.applyLayout(grid);
       this.updateLayoutDisplay();
     };
@@ -466,8 +522,10 @@ const CompareMode = {
     overlay.appendChild(grid);
 
     this.cells = [];
+    const defaultKey = opt.defaultVariant || variantKeys[0];
     variantKeys.forEach(key => {
-      const label = opt.variants[key];
+      const variantVal = opt.variants[key];
+      const label = _vLabel(variantVal);
       const cell = document.createElement('div');
       cell.className = 'mt-compare-cell';
 
@@ -477,6 +535,12 @@ const CompareMode = {
       const cellLabel = document.createElement('span');
       cellLabel.className = 'mt-compare-cell-label';
       cellLabel.textContent = label;
+      if (key === defaultKey) {
+        const badge = document.createElement('span');
+        badge.className = 'mt-compare-cell-badge';
+        badge.textContent = '\u2605 Recommended';
+        cellLabel.appendChild(badge);
+      }
       header.appendChild(cellLabel);
 
       const zoomDisp = document.createElement('span');
@@ -561,6 +625,38 @@ const CompareMode = {
       viewport.appendChild(content);
       canvasArea.appendChild(viewport);
       cell.appendChild(canvasArea);
+
+      // Pros/cons footer (when variant value is an object with pros/cons arrays)
+      if (typeof variantVal === 'object' && variantVal !== null && (variantVal.pros || variantVal.cons)) {
+        const footer = document.createElement('div');
+        footer.className = 'mt-compare-cell-footer';
+        const wrap = document.createElement('div');
+        wrap.className = 'mt-compare-proscons';
+        if (variantVal.pros && variantVal.pros.length) {
+          const pd = document.createElement('div');
+          pd.className = 'mt-compare-pros';
+          const pl = document.createElement('div');
+          pl.className = 'mt-compare-proscons-label';
+          pl.textContent = 'PROS';
+          pd.appendChild(pl);
+          variantVal.pros.forEach(p => { const d = document.createElement('div'); d.textContent = '\u2192 ' + p; pd.appendChild(d); });
+          wrap.appendChild(pd);
+        }
+        if (variantVal.cons && variantVal.cons.length) {
+          const cd = document.createElement('div');
+          cd.className = 'mt-compare-cons';
+          const cl = document.createElement('div');
+          cl.className = 'mt-compare-proscons-label';
+          cl.textContent = 'CONS';
+          cd.appendChild(cl);
+          variantVal.cons.forEach(c => { const d = document.createElement('div'); d.textContent = '\u2192 ' + c; cd.appendChild(d); });
+          wrap.appendChild(cd);
+        }
+        footer.appendChild(wrap);
+        if (!this.showProscons) footer.style.display = 'none';
+        cell.appendChild(footer);
+      }
+
       grid.appendChild(cell);
 
       const cellObj = { key, label, canvas: null, element: cell };
@@ -575,6 +671,10 @@ const CompareMode = {
 
     document.body.appendChild(overlay);
     this.overlayEl = overlay;
+
+    if (this._autoLayout) {
+      this.autoPickLayout(grid);
+    }
 
     // Center content in each cell after layout is computed
     requestAnimationFrame(() => {
