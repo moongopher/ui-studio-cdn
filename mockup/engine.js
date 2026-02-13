@@ -2454,6 +2454,7 @@ class OptionsPanel extends HTMLElement {
     copyBtn.addEventListener('click', () => {
       const text = root.querySelector('.copy-preview-text').textContent;
       navigator.clipboard.writeText(text).then(() => {
+        this.clearAllNotes();
         copyBtn.textContent = 'Copied!';
         copyBtn.classList.add('copied');
         setTimeout(() => this.closeCopyPreview(), 1000);
@@ -2890,6 +2891,35 @@ class OptionsPanel extends HTMLElement {
     }
 
     this.showCopyPreview(text);
+  }
+
+  clearAllNotes() {
+    this.optionNotes = {};
+
+    const root = this.shadowRoot;
+    const body = root.querySelector('.panel-body');
+    if (body) {
+      body.querySelectorAll('.notes-textarea').forEach(ta => {
+        ta.value = '';
+        ta.classList.remove('visible');
+      });
+      body.querySelectorAll('.list-generate-card').forEach(card => {
+        card.classList.remove('active');
+      });
+      body.querySelectorAll('.notes-dot').forEach(dot => {
+        dot.classList.remove('visible');
+      });
+    }
+
+    const guideNotes = root.querySelector('.guide-notes-textarea');
+    if (guideNotes) guideNotes.value = '';
+    const guideNotesSection = root.querySelector('.guide-notes-section');
+    if (guideNotesSection) guideNotesSection.style.display = 'none';
+    const guideGenerateCard = root.querySelector('.guide-generate-card');
+    if (guideGenerateCard) guideGenerateCard.classList.remove('active');
+
+    if (this.panelMode === 'guide') this.updateGuide();
+    this.saveState();
   }
 
   resetAll() {
