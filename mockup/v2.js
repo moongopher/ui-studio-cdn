@@ -462,10 +462,12 @@ const CompareMode = {
 
     minusBtn.addEventListener('click', () => {
       if (this._layoutIndex <= 0) return;
+      this._autoLayout = false;
       this._layoutIndex--; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
     plusBtn.addEventListener('click', () => {
       if (this._layoutIndex >= this._layoutSteps.length - 1) return;
+      this._autoLayout = false;
       this._layoutIndex++; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
 
@@ -476,6 +478,10 @@ const CompareMode = {
     this._resizeHandler = () => {
       const oldVisible = this._layoutSteps[this._layoutIndex].visible;
       this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
+      if (this._autoLayout) {
+        this.autoPickLayout(grid);
+        return;
+      }
       this._layoutIndex = this._layoutSteps.findIndex(s => s.visible >= oldVisible);
       if (this._layoutIndex < 0) this._layoutIndex = this._layoutSteps.length - 1;
       this.applyLayout(grid);
