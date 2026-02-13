@@ -131,29 +131,9 @@ const CompareMode = {
   _layoutIndex: 0,
 
   buildLayoutSteps(totalVariants) {
-    const panelW = window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-width')) || 340);
-    const panelH = window.innerHeight - 48;
-    const isLandscape = panelW >= panelH;
-    const seen = new Set();
     const steps = [];
-
-    for (let n = 1; n <= totalVariants; n++) {
-      let bestCols = 1, bestScore = -Infinity;
-      for (let c = 1; c <= n; c++) {
-        const r = Math.ceil(n / c);
-        const cellW = panelW / c;
-        const cellH = panelH / r;
-        const cellAspect = cellW / cellH;
-        const score = -Math.abs(Math.log(cellAspect / (4 / 3)));
-        const bias = isLandscape ? 0.1 * c : -0.1 * c;
-        if (score + bias > bestScore) { bestScore = score + bias; bestCols = c; }
-      }
-      const r = Math.ceil(n / bestCols);
-      const key = bestCols + 'x' + r;
-      if (!seen.has(key)) {
-        seen.add(key);
-        steps.push({ cols: bestCols, rows: r, visible: n });
-      }
+    for (let cols = 1; cols <= totalVariants; cols++) {
+      steps.push({ cols });
     }
     return steps;
   },
@@ -199,10 +179,12 @@ const CompareMode = {
     let bestFitAt100 = -1;
     let bestSubScale = 0;
     let bestSubIdx = 0;
+    const totalVariants = this.cells.length;
     for (let i = 0; i < this._layoutSteps.length; i++) {
       const step = this._layoutSteps[i];
+      const rows = Math.ceil(totalVariants / step.cols);
       const cellW = (panelW - gapSize * (step.cols - 1) - 24) / step.cols;
-      const availCellH = (totalH - padV - gapSize * (step.rows - 1) - cellBorder * step.rows) / step.rows - headerH;
+      const availCellH = (totalH - padV - gapSize * (rows - 1) - cellBorder * rows) / rows - headerH;
       const scaleX = cellW / contentW;
       const scaleY = availCellH / contentH;
       const fitScale = Math.min(scaleX, scaleY);
@@ -221,22 +203,24 @@ const CompareMode = {
 
   applyLayout(grid) {
     const step = this._layoutSteps[this._layoutIndex];
-    grid.style.gridTemplateColumns = `repeat(${step.cols}, 1fr)`;
+    if (!step) return;
+    const rows = Math.max(1, Math.ceil(this.cells.length / step.cols));
+    grid.style.gridTemplateColumns = `repeat(${step.cols}, minmax(0, 1fr))`;
     const toolbar = document.querySelector('.mt-compare-toolbar');
     const toolbarH = toolbar ? toolbar.offsetHeight : 53;
     const padV = 24;
     const gap = 12;
     const cellBorder = 2;
-    const availH = window.innerHeight - toolbarH - padV - (gap * (step.rows - 1)) - (cellBorder * step.rows);
-    const rowH = Math.floor(availH / step.rows);
+    const availH = window.innerHeight - toolbarH - padV - (gap * (rows - 1)) - (cellBorder * rows);
+    const rowH = Math.max(120, Math.floor(availH / rows));
     grid.style.gridAutoRows = rowH + 'px';
   },
 
   updateLayoutDisplay() {
     if (this._colCountDisplay) {
       const step = this._layoutSteps[this._layoutIndex];
-      const total = step.cols * step.rows;
-      this._colCountDisplay.textContent = total + ' card' + (total !== 1 ? 's' : '');
+      if (!step) return;
+      this._colCountDisplay.textContent = step.cols + ' col' + (step.cols !== 1 ? 's' : '');
     }
   },
 
@@ -453,21 +437,20 @@ const CompareMode = {
 
     this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
     const savedIdx = this.loadLayoutIndex(this.optionId);
-    this._autoLayout = (savedIdx === null);
     if (savedIdx !== null && savedIdx >= 0 && savedIdx < this._layoutSteps.length) {
       this._layoutIndex = savedIdx;
     } else {
-      this._layoutIndex = this._layoutSteps.length - 1;
+      const defaultCols = window.matchMedia('(max-width: 768px)').matches ? 1 : Math.min(2, this._layoutSteps.length);
+      this._layoutIndex = Math.max(0, defaultCols - 1);
+      this.saveLayoutIndex();
     }
 
     minusBtn.addEventListener('click', () => {
       if (this._layoutIndex <= 0) return;
-      this._autoLayout = false;
       this._layoutIndex--; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
     plusBtn.addEventListener('click', () => {
       if (this._layoutIndex >= this._layoutSteps.length - 1) return;
-      this._autoLayout = false;
       this._layoutIndex++; this.saveLayoutIndex(); this.applyLayout(grid); this.updateLayoutDisplay();
     });
 
@@ -476,14 +459,6 @@ const CompareMode = {
     this.applyLayout(grid);
     this.updateLayoutDisplay();
     this._resizeHandler = () => {
-      const oldVisible = this._layoutSteps[this._layoutIndex].visible;
-      this._layoutSteps = this.buildLayoutSteps(variantKeys.length);
-      if (this._autoLayout) {
-        this.autoPickLayout(grid);
-        return;
-      }
-      this._layoutIndex = this._layoutSteps.findIndex(s => s.visible >= oldVisible);
-      if (this._layoutIndex < 0) this._layoutIndex = this._layoutSteps.length - 1;
       this.applyLayout(grid);
       this.updateLayoutDisplay();
     };
@@ -600,10 +575,6 @@ const CompareMode = {
 
     document.body.appendChild(overlay);
     this.overlayEl = overlay;
-
-    if (this._autoLayout) {
-      this.autoPickLayout(grid);
-    }
 
     // Center content in each cell after layout is computed
     requestAnimationFrame(() => {
