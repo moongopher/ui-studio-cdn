@@ -2871,7 +2871,7 @@ class OptionsPanel extends HTMLElement {
 
     text += `## ${mode.selectedHeading}${hasAnyNotes ? ' ' + selected.length + ' options' : ''}\n`;
     selected.forEach(opt => {
-      text += `- **Option ${opt.id}: ${opt.name}** -- ${opt.desc}\n`;
+      text += `- **Option ${opt.id}: ${opt.name}**\n`;
       if (opt.variants && this.optionVariants[opt.id]) {
         const label = opt.variants[this.optionVariants[opt.id]] || this.optionVariants[opt.id];
         text += `  - Chosen variant: ${label}\n`;
