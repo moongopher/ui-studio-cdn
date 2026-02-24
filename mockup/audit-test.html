@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engine Test — Component Catalog (v3)</title>
+<link rel="stylesheet" href="./engine.css">
+</head>
+<body>
+<script>
+window.MOCKUP = {
+  config: {
+    "title": "Component Audit: acme-dashboard",
+    "storageKey": "component-audit-acme",
+    "catalogMode": true,
+    "views": [{ "id": "catalog", "label": "Component Catalog" }],
+    "options": []
+  },
+
+  audit: {
+    "framework": "react",
+    "scanDate": "2026-02-24",
+    "stats": { "totalComponents": 12, "categories": 5, "inconsistencies": 3 },
+    "components": [
+      {
+        "id": "btn-primary",
+        "name": "Button",
+        "category": "buttons",
+        "filePath": "src/components/Button.tsx",
+        "usageCount": 84,
+        "props": ["variant", "size", "disabled", "onClick"],
+        "variants": [
+          { "key": "primary", "label": "Primary" },
+          { "key": "secondary", "label": "Secondary" },
+          { "key": "outline", "label": "Outline" },
+          { "key": "ghost", "label": "Ghost" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "cta-button",
+        "name": "CTAButton",
+        "category": "buttons",
+        "filePath": "src/components/CTAButton.tsx",
+        "usageCount": 12,
+        "props": ["label", "href"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "large", "label": "Large" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "icon-button",
+        "name": "IconButton",
+        "category": "buttons",
+        "filePath": "src/components/IconButton.tsx",
+        "usageCount": 31,
+        "props": ["icon", "size", "variant", "ariaLabel"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "small", "label": "Small" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "text-input",
+        "name": "TextInput",
+        "category": "forms",
+        "filePath": "src/components/TextInput.tsx",
+        "usageCount": 45,
+        "props": ["label", "placeholder", "error", "disabled"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "error", "label": "Error" },
+          { "key": "disabled", "label": "Disabled" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "select-input",
+        "name": "Select",
+        "category": "forms",
+        "filePath": "src/components/Select.tsx",
+        "usageCount": 18,
+        "props": ["options", "value", "onChange", "label"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "multi", "label": "Multi-select" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "stat-card",
+        "name": "StatCard",
+        "category": "cards",
+        "filePath": "src/components/StatCard.tsx",
+        "usageCount": 22,
+        "props": ["title", "value", "change", "icon"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "compact", "label": "Compact" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "info-card",
+        "name": "InfoCard",
+        "category": "cards",
+        "filePath": "src/components/InfoCard.tsx",
+        "usageCount": 8,
+        "props": ["title", "description", "image"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "horizontal", "label": "Horizontal" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "sidebar-nav",
+        "name": "SidebarNav",
+        "category": "navigation",
+        "filePath": "src/components/SidebarNav.tsx",
+        "usageCount": 3,
+        "props": ["items", "activeItem", "collapsed"],
+        "variants": [
+          { "key": "expanded", "label": "Expanded" },
+          { "key": "collapsed", "label": "Collapsed" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "top-nav",
+        "name": "TopNav",
+        "category": "navigation",
+        "filePath": "src/components/TopNav.tsx",
+        "usageCount": 2,
+        "props": ["user", "notifications"],
+        "variants": [
+          { "key": "default", "label": "Default" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "data-table",
+        "name": "DataTable",
+        "category": "data-display",
+        "filePath": "src/components/DataTable.tsx",
+        "usageCount": 14,
+        "props": ["columns", "data", "sortable", "paginated"],
+        "variants": [
+          { "key": "default", "label": "Default" },
+          { "key": "striped", "label": "Striped" },
+          { "key": "compact", "label": "Compact" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "badge",
+        "name": "Badge",
+        "category": "data-display",
+        "filePath": "src/components/Badge.tsx",
+        "usageCount": 37,
+        "props": ["label", "color", "size"],
+        "variants": [
+          { "key": "success", "label": "Success" },
+          { "key": "warning", "label": "Warning" },
+          { "key": "error", "label": "Error" },
+          { "key": "info", "label": "Info" }
+        ],
+        "inconsistencies": []
+      },
+      {
+        "id": "toast",
+        "name": "Toast",
+        "category": "feedback",
+        "filePath": "src/components/Toast.tsx",
+        "usageCount": 6,
+        "props": ["message", "type", "duration", "onClose"],
+        "variants": [
+          { "key": "success", "label": "Success" },
+          { "key": "error", "label": "Error" },
+          { "key": "info", "label": "Info" }
+        ],
+        "inconsistencies": []
+      }
+    ],
+    "inconsistencies": [
+      {
+        "type": "duplicate-pattern",
+        "severity": "warning",
+        "message": "3 different button components with overlapping functionality: Button, CTAButton, IconButton",
+        "components": ["btn-primary", "cta-button", "icon-button"],
+        "suggestion": "Unify into a single Button component with variant, icon, and CTA props"
+      },
+      {
+        "type": "style-drift",
+        "severity": "info",
+        "message": "StatCard uses 12px border-radius while InfoCard uses 8px",
+        "components": ["stat-card", "info-card"],
+        "suggestion": "Standardize border-radius to a shared design token"
+      },
+      {
+        "type": "naming-inconsistency",
+        "severity": "info",
+        "message": "Mixed naming: TextInput vs Select (Input suffix inconsistent)",
+        "components": ["text-input", "select-input"],
+        "suggestion": "Use consistent naming: TextInput + SelectInput or Text + Select"
+      }
+    ]
+  },
+
+  views: {}
+};
+
+/* ── Catalog View ── */
+window.MOCKUP.views.catalog = `
+  <!-- Button -->
+  <div data-component-id="btn-primary" style="display:none;">
+    <div data-variant="primary">
+      <button style="padding:10px 20px;background:#2563eb;color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">Submit</button>
+    </div>
+    <div data-variant="secondary">
+      <button style="padding:10px 20px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">Cancel</button>
+    </div>
+    <div data-variant="outline">
+      <button style="padding:10px 20px;background:transparent;color:#2563eb;border:2px solid #2563eb;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">Learn More</button>
+    </div>
+    <div data-variant="ghost">
+      <button style="padding:10px 20px;background:transparent;color:#64748b;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">Skip</button>
+    </div>
+  </div>
+
+  <!-- CTAButton -->
+  <div data-component-id="cta-button" style="display:none;">
+    <div data-variant="default">
+      <a href="#" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;border-radius:8px;font-weight:700;font-size:16px;text-decoration:none;">Get Started Free</a>
+    </div>
+    <div data-variant="large">
+      <a href="#" style="display:inline-block;padding:16px 48px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;border-radius:12px;font-weight:700;font-size:20px;text-decoration:none;">Get Started Free</a>
+    </div>
+  </div>
+
+  <!-- IconButton -->
+  <div data-component-id="icon-button" style="display:none;">
+    <div data-variant="default">
+      <button style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="#64748b"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 10H7V7h2v4zm0-6H7V3h2v2z"/></svg>
+      </button>
+    </div>
+    <div data-variant="small">
+      <button style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:6px;background:white;cursor:pointer;">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="#64748b"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 10H7V7h2v4zm0-6H7V3h2v2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- TextInput -->
+  <div data-component-id="text-input" style="display:none;">
+    <div data-variant="default">
+      <div style="display:flex;flex-direction:column;gap:4px;width:260px;">
+        <label style="font-size:13px;font-weight:600;color:#334155;">Email</label>
+        <input type="text" placeholder="you@example.com" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;outline:none;">
+      </div>
+    </div>
+    <div data-variant="error">
+      <div style="display:flex;flex-direction:column;gap:4px;width:260px;">
+        <label style="font-size:13px;font-weight:600;color:#334155;">Email</label>
+        <input type="text" value="invalid-email" style="padding:8px 12px;border:2px solid #ef4444;border-radius:6px;font-size:14px;outline:none;">
+        <span style="font-size:12px;color:#ef4444;">Please enter a valid email address</span>
+      </div>
+    </div>
+    <div data-variant="disabled">
+      <div style="display:flex;flex-direction:column;gap:4px;width:260px;">
+        <label style="font-size:13px;font-weight:600;color:#94a3b8;">Email</label>
+        <input type="text" disabled placeholder="Not available" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;background:#f8fafc;color:#94a3b8;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Select -->
+  <div data-component-id="select-input" style="display:none;">
+    <div data-variant="default">
+      <div style="display:flex;flex-direction:column;gap:4px;width:260px;">
+        <label style="font-size:13px;font-weight:600;color:#334155;">Country</label>
+        <select style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;background:white;">
+          <option>United States</option><option>Canada</option><option>United Kingdom</option>
+        </select>
+      </div>
+    </div>
+    <div data-variant="multi">
+      <div style="display:flex;flex-direction:column;gap:4px;width:260px;">
+        <label style="font-size:13px;font-weight:600;color:#334155;">Skills</label>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;border:1px solid #e2e8f0;border-radius:6px;">
+          <span style="padding:2px 8px;background:#dbeafe;color:#1d4ed8;border-radius:99px;font-size:12px;">React</span>
+          <span style="padding:2px 8px;background:#dbeafe;color:#1d4ed8;border-radius:99px;font-size:12px;">TypeScript</span>
+          <span style="padding:2px 8px;background:#f1f5f9;color:#64748b;border-radius:99px;font-size:12px;">+ Add</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- StatCard -->
+  <div data-component-id="stat-card" style="display:none;">
+    <div data-variant="default">
+      <div style="width:200px;padding:16px;background:white;border:1px solid #e2e8f0;border-radius:12px;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Revenue</div>
+        <div style="font-size:28px;font-weight:800;color:#0f172a;">$48.2K</div>
+        <div style="font-size:12px;color:#16a34a;margin-top:4px;">+12.5% from last month</div>
+      </div>
+    </div>
+    <div data-variant="compact">
+      <div style="width:160px;padding:12px;background:white;border:1px solid #e2e8f0;border-radius:8px;">
+        <div style="font-size:11px;color:#64748b;">Revenue</div>
+        <div style="font-size:20px;font-weight:800;color:#0f172a;">$48.2K</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- InfoCard -->
+  <div data-component-id="info-card" style="display:none;">
+    <div data-variant="default">
+      <div style="width:240px;background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+        <div style="height:80px;background:linear-gradient(135deg,#dbeafe,#e0e7ff);"></div>
+        <div style="padding:12px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Getting Started</div>
+          <div style="font-size:12px;color:#64748b;">Learn the basics of our dashboard.</div>
+        </div>
+      </div>
+    </div>
+    <div data-variant="horizontal">
+      <div style="width:320px;display:flex;background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+        <div style="width:80px;background:linear-gradient(135deg,#dbeafe,#e0e7ff);flex-shrink:0;"></div>
+        <div style="padding:12px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Getting Started</div>
+          <div style="font-size:12px;color:#64748b;">Learn the basics of our dashboard.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SidebarNav -->
+  <div data-component-id="sidebar-nav" style="display:none;">
+    <div data-variant="expanded">
+      <div style="width:220px;background:#1e293b;color:white;padding:16px;border-radius:8px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:16px;">Acme</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <a href="#" style="color:white;text-decoration:none;padding:8px 12px;background:#334155;border-radius:6px;font-size:13px;">Dashboard</a>
+          <a href="#" style="color:#94a3b8;text-decoration:none;padding:8px 12px;font-size:13px;">Analytics</a>
+          <a href="#" style="color:#94a3b8;text-decoration:none;padding:8px 12px;font-size:13px;">Settings</a>
+        </div>
+      </div>
+    </div>
+    <div data-variant="collapsed">
+      <div style="width:56px;background:#1e293b;color:white;padding:12px 8px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <div style="width:32px;height:32px;background:#334155;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">A</div>
+        <div style="width:32px;height:32px;background:#334155;border-radius:6px;"></div>
+        <div style="width:32px;height:32px;background:transparent;border-radius:6px;"></div>
+        <div style="width:32px;height:32px;background:transparent;border-radius:6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TopNav -->
+  <div data-component-id="top-nav" style="display:none;">
+    <div data-variant="default">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:white;border:1px solid #e2e8f0;border-radius:8px;width:500px;">
+        <div style="font-weight:700;font-size:16px;">Acme Dashboard</div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <span style="font-size:13px;color:#64748b;">Dashboard</span>
+          <span style="font-size:13px;color:#2563eb;font-weight:600;">Analytics</span>
+          <span style="font-size:13px;color:#64748b;">Settings</span>
+          <div style="width:32px;height:32px;background:#e2e8f0;border-radius:99px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DataTable -->
+  <div data-component-id="data-table" style="display:none;">
+    <div data-variant="default">
+      <table style="width:400px;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:8px 12px;font-weight:600;">Name</th><th style="text-align:left;padding:8px 12px;">Email</th><th style="text-align:right;padding:8px 12px;">Revenue</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 12px;">Alice</td><td style="padding:8px 12px;color:#64748b;">alice@co.com</td><td style="padding:8px 12px;text-align:right;font-weight:600;">$12.4K</td></tr>
+          <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px 12px;">Bob</td><td style="padding:8px 12px;color:#64748b;">bob@co.com</td><td style="padding:8px 12px;text-align:right;font-weight:600;">$8.2K</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div data-variant="striped">
+      <table style="width:400px;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:#f1f5f9;"><th style="text-align:left;padding:8px 12px;font-weight:600;">Name</th><th style="text-align:left;padding:8px 12px;">Email</th><th style="text-align:right;padding:8px 12px;">Revenue</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:8px 12px;">Alice</td><td style="padding:8px 12px;color:#64748b;">alice@co.com</td><td style="padding:8px 12px;text-align:right;font-weight:600;">$12.4K</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:8px 12px;">Bob</td><td style="padding:8px 12px;color:#64748b;">bob@co.com</td><td style="padding:8px 12px;text-align:right;font-weight:600;">$8.2K</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div data-variant="compact">
+      <table style="width:400px;border-collapse:collapse;font-size:11px;">
+        <thead><tr style="background:#1e293b;color:white;"><th style="text-align:left;padding:4px 8px;">Name</th><th style="text-align:left;padding:4px 8px;">Email</th><th style="text-align:right;padding:4px 8px;">Revenue</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:4px 8px;">Alice</td><td style="padding:4px 8px;color:#64748b;">alice@co.com</td><td style="padding:4px 8px;text-align:right;">$12.4K</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:4px 8px;">Bob</td><td style="padding:4px 8px;color:#64748b;">bob@co.com</td><td style="padding:4px 8px;text-align:right;">$8.2K</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Badge -->
+  <div data-component-id="badge" style="display:none;">
+    <div data-variant="success">
+      <span style="display:inline-block;padding:2px 10px;background:#dcfce7;color:#16a34a;border-radius:99px;font-size:12px;font-weight:600;">Active</span>
+    </div>
+    <div data-variant="warning">
+      <span style="display:inline-block;padding:2px 10px;background:#fef3c7;color:#d97706;border-radius:99px;font-size:12px;font-weight:600;">Pending</span>
+    </div>
+    <div data-variant="error">
+      <span style="display:inline-block;padding:2px 10px;background:#fee2e2;color:#dc2626;border-radius:99px;font-size:12px;font-weight:600;">Inactive</span>
+    </div>
+    <div data-variant="info">
+      <span style="display:inline-block;padding:2px 10px;background:#dbeafe;color:#2563eb;border-radius:99px;font-size:12px;font-weight:600;">New</span>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div data-component-id="toast" style="display:none;">
+    <div data-variant="success">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;width:300px;font-size:13px;">
+        <span style="color:#16a34a;font-size:16px;">&#10003;</span>
+        <span style="color:#15803d;font-weight:500;">Changes saved successfully</span>
+      </div>
+    </div>
+    <div data-variant="error">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;width:300px;font-size:13px;">
+        <span style="color:#dc2626;font-size:16px;">&#10007;</span>
+        <span style="color:#b91c1c;font-weight:500;">Failed to save changes</span>
+      </div>
+    </div>
+    <div data-variant="info">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;width:300px;font-size:13px;">
+        <span style="color:#2563eb;font-size:16px;">&#8505;</span>
+        <span style="color:#1d4ed8;font-weight:500;">New update available</span>
+      </div>
+    </div>
+  </div>
+`;
+</script>
+<script src="./engine.js"></script>
+</body>
+</html>

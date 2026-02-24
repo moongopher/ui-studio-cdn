@@ -3348,8 +3348,8 @@ function bootstrapFromMockup() {
     document.body.insertBefore(container, document.querySelector('options-panel') || document.body.lastChild);
   }
 
-  // Create options-panel element
-  if (!document.querySelector('options-panel')) {
+  // Create options-panel element (skip in catalog mode — no options panel needed)
+  if (!config.catalogMode && !document.querySelector('options-panel')) {
     const panel = document.createElement('options-panel');
     document.body.appendChild(panel);
   }
@@ -3485,6 +3485,7 @@ if (!CONFIG.prompt) {
   };
 }
 if (CONFIG.combos === undefined) CONFIG.combos = [];
+if (CONFIG.catalogMode === undefined) CONFIG.catalogMode = false;
 if (CONFIG.compareOnly === undefined) CONFIG.compareOnly = true;
 CONFIG._originalCompareOnly = CONFIG.compareOnly;
 
@@ -3511,26 +3512,31 @@ populatePhotos(document, CONFIG.storageKey);
 
 customElements.define('options-panel', OptionsPanel);
 
-const applyFn = (typeof window.applyOptions === 'function')
-  ? window.applyOptions
-  : generateApplyOptions(CONFIG);
-initTabs();
-initCanvasViews();
+const applyFn = CONFIG.catalogMode
+  ? function() {} // no-op in catalog mode
+  : (typeof window.applyOptions === 'function')
+    ? window.applyOptions
+    : generateApplyOptions(CONFIG);
 
-// Restore active view from saved state
-const _panel = document.querySelector('options-panel');
-if (_panel && _panel._pendingActiveView) {
-  switchView(_panel._pendingActiveView);
-  _panel._pendingActiveView = null;
+if (!CONFIG.catalogMode) {
+  initTabs();
+  initCanvasViews();
+
+  // Restore active view from saved state
+  const _panel = document.querySelector('options-panel');
+  if (_panel && _panel._pendingActiveView) {
+    switchView(_panel._pendingActiveView);
+    _panel._pendingActiveView = null;
+  }
+
+  // Attach options-change listener synchronously (before microtask fires initial event)
+  document.querySelector('options-panel').addEventListener('options-change', e => {
+    applyFn(e.detail.active, e.detail.variants);
+  });
 }
 
-// Attach options-change listener synchronously (before microtask fires initial event)
-document.querySelector('options-panel').addEventListener('options-change', e => {
-  applyFn(e.detail.active, e.detail.variants);
-});
-
 // Dynamically load interface version and boot
-const _interfaceVersion = CONFIG.compareOnly ? 'v2' : 'v1';
+const _interfaceVersion = CONFIG.catalogMode ? 'v3' : (CONFIG.compareOnly ? 'v2' : 'v1');
 (async () => {
   try {
     await loadInterface(_interfaceVersion);
