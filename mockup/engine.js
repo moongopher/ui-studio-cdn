@@ -39,23 +39,34 @@ function toggle(elementId, show) {
 
 function toggleVariant(els, active, chosenVariant) {
   const isPreview = window._isPreview;
+  const isMulti = Array.isArray(chosenVariant);
+  const selectedSet = isMulti ? new Set(chosenVariant) : null;
   Object.entries(els).forEach(([key, elId]) => {
     const el = document.getElementById(elId);
     if (!el) return;
+    const isChosen = isMulti ? selectedSet.has(key) : (key === chosenVariant);
     if (isPreview) {
-      // Crossfade mode: stack variants absolutely, fade with opacity
-      const parent = el.parentElement;
-      if (parent && !parent._mtCrossfadeSetup) {
-        parent.style.position = 'relative';
-        parent._mtCrossfadeSetup = true;
+      // Crossfade mode: for multi-select use opacity only (no absolute stacking)
+      if (!isMulti) {
+        const parent = el.parentElement;
+        if (parent && !parent._mtCrossfadeSetup) {
+          parent.style.position = 'relative';
+          parent._mtCrossfadeSetup = true;
+        }
+        el.style.display = '';
+        el.style.position = 'absolute';
+        el.style.top = '0';
+        el.style.left = '0';
+        el.style.width = '100%';
+      } else {
+        el.style.display = '';
+        el.style.position = '';
+        el.style.top = '';
+        el.style.left = '';
+        el.style.width = '';
       }
-      el.style.display = '';
-      el.style.position = 'absolute';
-      el.style.top = '0';
-      el.style.left = '0';
-      el.style.width = '100%';
       el.style.transition = 'opacity 200ms ease';
-      if (active && key === chosenVariant) {
+      if (active && isChosen) {
         el.style.opacity = '1';
         el.style.pointerEvents = '';
       } else {
@@ -78,7 +89,7 @@ function toggleVariant(els, active, chosenVariant) {
           el.parentElement._mtCrossfadeSetup = false;
         }
       }
-      if (active && key === chosenVariant) {
+      if (active && isChosen) {
         el.style.display = '';
       } else {
         el.style.display = 'none';
@@ -219,13 +230,23 @@ class OptionsPanel extends HTMLElement {
       if (state.guideDecisions) this.guideDecisions = state.guideDecisions;
       if (state.collapsedGroups) this._pendingCollapsedGroups = state.collapsedGroups;
       if (state.activeView) this._pendingActiveView = state.activeView;
+      // Migrate string→array for options that changed to multiSelect
+      CONFIG.options.forEach(opt => {
+        if (opt.multiSelect && this.optionVariants[opt.id] && typeof this.optionVariants[opt.id] === 'string') {
+          this.optionVariants[opt.id] = [this.optionVariants[opt.id]];
+        }
+      });
     } catch (e) { /* corrupted data */ }
   }
 
   initDefaultVariants() {
     CONFIG.options.forEach(opt => {
       if (opt.variants && !this.optionVariants[opt.id]) {
-        this.optionVariants[opt.id] = opt.defaultVariant || Object.keys(opt.variants)[0];
+        if (opt.multiSelect) {
+          this.optionVariants[opt.id] = opt.defaultVariants ? [...opt.defaultVariants] : Object.keys(opt.variants);
+        } else {
+          this.optionVariants[opt.id] = opt.defaultVariant || Object.keys(opt.variants)[0];
+        }
       }
     });
   }
@@ -1189,6 +1210,14 @@ class OptionsPanel extends HTMLElement {
       margin-top: var(--sp-2);
       flex-wrap: wrap;
     }
+    .variant-row.multi-select::before {
+      content: 'Select multiple';
+      display: block;
+      width: 100%;
+      font-size: var(--text-xs);
+      color: var(--c-text-muted);
+      margin-bottom: 2px;
+    }
     .variant-btn {
       font-size: var(--text-xs);
       padding: var(--sp-1) 10px;
@@ -1853,11 +1882,13 @@ class OptionsPanel extends HTMLElement {
         html += `<div class="toggle-desc">${this.esc(opt.desc)}</div>`;
 
         if (hasVariants) {
-          html += `<div class="variant-row">`;
+          const isMultiSelect = !!opt.multiSelect;
+          html += `<div class="variant-row${isMultiSelect ? ' multi-select' : ''}">`;
           Object.entries(opt.variants).forEach(([key, val]) => {
             const label = _vLabel(val);
             const isRecVariant = isRecommended && opt.recommendedVariant === key;
-            html += `<button class="variant-btn${currentVariant === key ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-variant-opt="${opt.id}" data-variant-key="${key}">${this.esc(label)}</button>`;
+            const isSel = isMultiSelect ? (Array.isArray(currentVariant) && currentVariant.includes(key)) : currentVariant === key;
+            html += `<button class="variant-btn${isSel ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" data-variant-opt="${opt.id}" data-variant-key="${key}">${this.esc(label)}</button>`;
           });
           html += `</div>`;
           if (!CONFIG.compareOnly) html += `<button class="compare-btn" data-compare-opt="${opt.id}">&#8862; Compare</button>`;
@@ -2004,18 +2035,39 @@ class OptionsPanel extends HTMLElement {
           e.stopPropagation(); // Prevent toggle-item click
           const optId = parseInt(btn.dataset.variantOpt);
           const key = btn.dataset.variantKey;
-          this.optionVariants[optId] = key;
-          body.querySelectorAll(`[data-variant-opt="${optId}"]`).forEach(b => b.classList.remove('selected'));
-          btn.classList.add('selected');
+          const opt = CONFIG.options.find(o => o.id === optId);
+          if (opt && opt.multiSelect) {
+            // Multi-select: toggle key in/out of array
+            let arr = Array.isArray(this.optionVariants[optId]) ? this.optionVariants[optId] : [];
+            const idx = arr.indexOf(key);
+            if (idx >= 0) { arr.splice(idx, 1); } else { arr.push(key); }
+            this.optionVariants[optId] = arr;
+            // Update all button states
+            body.querySelectorAll(`[data-variant-opt="${optId}"]`).forEach(b => {
+              b.classList.toggle('selected', arr.includes(b.dataset.variantKey));
+            });
+          } else {
+            this.optionVariants[optId] = key;
+            body.querySelectorAll(`[data-variant-opt="${optId}"]`).forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+          }
           this.saveState();
           this.fireOptionsChange();
         });
         btn.addEventListener('mouseenter', () => {
           const optId = parseInt(btn.dataset.variantOpt);
           const key = btn.dataset.variantKey;
-          // Preview the variant
+          const opt = CONFIG.options.find(o => o.id === optId);
           const preview = Object.assign({}, this.optionVariants);
-          preview[optId] = key;
+          if (opt && opt.multiSelect) {
+            // Clone array, toggle hovered key in/out
+            const arr = Array.isArray(preview[optId]) ? [...preview[optId]] : [];
+            const idx = arr.indexOf(key);
+            if (idx >= 0) { arr.splice(idx, 1); } else { arr.push(key); }
+            preview[optId] = arr;
+          } else {
+            preview[optId] = key;
+          }
           this.startPreview(null, preview);
         });
         btn.addEventListener('mouseleave', () => this.endPreview());
@@ -2669,11 +2721,14 @@ class OptionsPanel extends HTMLElement {
 
     if (hasVariants) {
       varSection.style.display = '';
+      const isMultiSelect = !!opt.multiSelect;
       let cardsHtml = '';
       Object.entries(opt.variants).forEach(([key, val]) => {
         const label = _vLabel(val);
         const isRecVariant = opt.recommended && opt.recommendedVariant === key;
-        const isSelected = decision === 'yes' && currentVariant === key;
+        const isSelected = isMultiSelect
+          ? (Array.isArray(currentVariant) && currentVariant.includes(key))
+          : (decision === 'yes' && currentVariant === key);
         cardsHtml += `<div class="guide-variant-card${isSelected ? ' selected' : ''}${isRecVariant ? ' recommended' : ''}" tabindex="0" role="button" data-gv-key="${key}"><div class="guide-variant-thumb"></div><div class="guide-variant-label">${this.esc(label)}</div>${isRecVariant ? '<div class="guide-variant-pick">Our pick</div>' : ''}</div>`;
       });
       cardsEl.innerHTML = cardsHtml; // eslint-disable-line -- trusted template from CONFIG keys
@@ -2686,14 +2741,50 @@ class OptionsPanel extends HTMLElement {
       // Bind variant card clicks and hover preview
       cardsEl.querySelectorAll('.guide-variant-card').forEach(card => {
         card.addEventListener('click', () => {
-          this.optionVariants[opt.id] = card.dataset.gvKey;
-          this.guideDecide('yes');
+          if (isMultiSelect) {
+            // Toggle key in array, do NOT auto-advance
+            let arr = Array.isArray(this.optionVariants[opt.id]) ? this.optionVariants[opt.id] : [];
+            const key = card.dataset.gvKey;
+            const idx = arr.indexOf(key);
+            if (idx >= 0) { arr.splice(idx, 1); } else { arr.push(key); }
+            this.optionVariants[opt.id] = arr;
+            // Update card selected states
+            cardsEl.querySelectorAll('.guide-variant-card').forEach(c => {
+              c.classList.toggle('selected', arr.includes(c.dataset.gvKey));
+            });
+            // Update skip card state
+            const skipCard = root.querySelector('.guide-variants-section > .guide-skip-card');
+            if (skipCard) skipCard.classList.toggle('selected', false);
+            // Mark as decided
+            if (arr.length > 0) {
+              this.guideDecisions[opt.id] = 'yes';
+              this.activeOptions.add(opt.id);
+            } else {
+              this.guideDecisions[opt.id] = 'no';
+              this.activeOptions.delete(opt.id);
+            }
+            this.syncToggles();
+            this.saveState();
+            this.fireOptionsChange();
+          } else {
+            this.optionVariants[opt.id] = card.dataset.gvKey;
+            this.guideDecide('yes');
+          }
         });
         card.addEventListener('mouseenter', () => {
           const preview = Object.assign({}, this.optionVariants);
-          preview[opt.id] = card.dataset.gvKey;
           const activePreview = new Set(this.activeOptions);
           activePreview.add(opt.id);
+          if (isMultiSelect) {
+            // Clone array, toggle hovered key
+            const arr = Array.isArray(preview[opt.id]) ? [...preview[opt.id]] : [];
+            const key = card.dataset.gvKey;
+            const idx = arr.indexOf(key);
+            if (idx >= 0) { arr.splice(idx, 1); } else { arr.push(key); }
+            preview[opt.id] = arr;
+          } else {
+            preview[opt.id] = card.dataset.gvKey;
+          }
           this.startPreview(activePreview, preview);
         });
         card.addEventListener('mouseleave', () => this.endPreview());
@@ -2787,8 +2878,15 @@ class OptionsPanel extends HTMLElement {
     let html = '';
     CONFIG.options.forEach((opt, idx) => {
       const isActive = this.activeOptions.has(opt.id);
-      const variantLabel = (isActive && opt.variants && this.optionVariants[opt.id])
-        ? _vLabel(opt.variants[this.optionVariants[opt.id]]) : '';
+      const val = this.optionVariants[opt.id];
+      let variantLabel = '';
+      if (isActive && opt.variants && val) {
+        if (Array.isArray(val)) {
+          variantLabel = val.map(k => _vLabel(opt.variants[k])).join(', ');
+        } else {
+          variantLabel = _vLabel(opt.variants[val]) || '';
+        }
+      }
       html += `<div class="guide-summary-item" data-summary-step="${idx}">`;
       html += `<span class="guide-summary-check ${isActive ? 'on' : 'off'}">${isActive ? '&#10003;' : '&#10007;'}</span>`;
       html += `<span class="guide-summary-name${isActive ? '' : ' off'}">${this.esc(opt.name)}</span>`;
@@ -2832,6 +2930,20 @@ class OptionsPanel extends HTMLElement {
   }
 
   guideNext() {
+    // Auto-decide multi-select before reverting auto-yes
+    const curOpt = CONFIG.options[this.guideStep];
+    if (curOpt && curOpt.multiSelect && this.guideDecisions[curOpt.id] == null) {
+      const arr = this.optionVariants[curOpt.id];
+      if (Array.isArray(arr) && arr.length > 0) {
+        this.guideDecisions[curOpt.id] = 'yes';
+        this.activeOptions.add(curOpt.id);
+      } else {
+        this.guideDecisions[curOpt.id] = 'no';
+        this.activeOptions.delete(curOpt.id);
+      }
+      this.syncToggles();
+      this.fireOptionsChange();
+    }
     this.guideRevertAutoYes();
     if (this.guideStep >= CONFIG.options.length) {
       // Already on summary — copy prompt
@@ -2878,8 +2990,16 @@ class OptionsPanel extends HTMLElement {
     selected.forEach(opt => {
       text += `- **Option ${opt.id}: ${opt.name}**\n`;
       if (opt.variants && this.optionVariants[opt.id]) {
-        const label = _vLabel(opt.variants[this.optionVariants[opt.id]]) || this.optionVariants[opt.id];
-        text += `  - Chosen variant: ${label}\n`;
+        const val = this.optionVariants[opt.id];
+        if (Array.isArray(val)) {
+          const labels = val.length > 0
+            ? val.map(k => _vLabel(opt.variants[k]) || k).join(', ')
+            : '(none)';
+          text += `  - Selected: ${labels}\n`;
+        } else {
+          const label = _vLabel(opt.variants[val]) || val;
+          text += `  - Chosen variant: ${label}\n`;
+        }
       }
       if (hasAnyNotes && this.optionNotes[opt.id]) {
         text += `  - Notes: ${this.optionNotes[opt.id]}\n`;
@@ -2950,7 +3070,8 @@ class OptionsPanel extends HTMLElement {
       body.querySelectorAll('.variant-btn').forEach(btn => {
         const optId = parseInt(btn.dataset.variantOpt);
         const key = btn.dataset.variantKey;
-        btn.classList.toggle('selected', this.optionVariants[optId] === key);
+        const val = this.optionVariants[optId];
+        btn.classList.toggle('selected', Array.isArray(val) ? val.includes(key) : val === key);
       });
       body.querySelectorAll('.toggle-item.expanded').forEach(item => item.classList.remove('expanded'));
       body.querySelectorAll('.notes-dot').forEach(dot => dot.classList.remove('visible'));

@@ -281,12 +281,14 @@ const CompareMode = {
     document.body.classList.add('mt-compare-open');
 
     this._optionsHandler = (e) => {
-      const key = e.detail.variants[this.optionId];
-      if (key && this.cells) {
+      const val = e.detail.variants[this.optionId];
+      if (val != null && this.cells) {
+        const isMulti = Array.isArray(val);
+        const selectedSet = isMulti ? new Set(val) : null;
         this.cells.forEach(c => {
-          const picked = c.key === key;
+          const picked = isMulti ? selectedSet.has(c.key) : (c.key === val);
           c.element.classList.toggle('mt-compare-picked', picked);
-          if (picked) c.element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (picked && !isMulti) c.element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
       }
     };
@@ -322,8 +324,18 @@ const CompareMode = {
 
   pick(key) {
     const panel = document.querySelector('options-panel');
+    const opt = this.option;
+    const isMultiSelect = opt && opt.multiSelect;
     if (panel) {
-      panel.optionVariants[this.optionId] = key;
+      if (isMultiSelect) {
+        // Toggle key in/out of array
+        let arr = Array.isArray(panel.optionVariants[this.optionId]) ? panel.optionVariants[this.optionId] : [];
+        const idx = arr.indexOf(key);
+        if (idx >= 0) { arr.splice(idx, 1); } else { arr.push(key); }
+        panel.optionVariants[this.optionId] = arr;
+      } else {
+        panel.optionVariants[this.optionId] = key;
+      }
       if (panel.panelMode === 'guide') {
         panel.activeOptions.add(this.optionId);
         panel.guideDecisions[this.optionId] = 'yes';
@@ -331,13 +343,27 @@ const CompareMode = {
       }
       const body = panel.shadowRoot.querySelector('.panel-body');
       if (body) {
-        body.querySelectorAll(`[data-variant-opt="${this.optionId}"]`).forEach(b => {
-          b.classList.toggle('selected', b.dataset.variantKey === key);
-        });
+        if (isMultiSelect) {
+          const arr = panel.optionVariants[this.optionId];
+          body.querySelectorAll(`[data-variant-opt="${this.optionId}"]`).forEach(b => {
+            b.classList.toggle('selected', arr.includes(b.dataset.variantKey));
+          });
+        } else {
+          body.querySelectorAll(`[data-variant-opt="${this.optionId}"]`).forEach(b => {
+            b.classList.toggle('selected', b.dataset.variantKey === key);
+          });
+        }
       }
       panel.saveState();
       panel.fireOptionsChange();
       if (panel.panelMode === 'guide') panel.updateGuide();
+    }
+    if (isMultiSelect) {
+      // Update cell highlights but do NOT close grid
+      const arr = panel ? panel.optionVariants[this.optionId] : [];
+      const selectedSet = new Set(arr);
+      this.cells.forEach(c => c.element.classList.toggle('mt-compare-picked', selectedSet.has(c.key)));
+      return;
     }
     if (CONFIG.compareOnly) {
       this.cells.forEach(c => c.element.classList.toggle('mt-compare-picked', c.key === key));
