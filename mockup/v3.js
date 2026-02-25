@@ -207,6 +207,13 @@ const CatalogMode = {
     viewToggle.appendChild(gridBtn);
     viewToggle.appendChild(listBtn);
     toolbar.appendChild(viewToggle);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'mt-catalog-copy-btn';
+    copyBtn.textContent = 'Copy as Markdown';
+    copyBtn.addEventListener('click', () => this.copyAsMarkdown(copyBtn));
+    toolbar.appendChild(copyBtn);
+
     main.appendChild(toolbar);
 
     // Grid
@@ -471,6 +478,53 @@ const CatalogMode = {
     });
 
     return detail;
+  },
+
+  copyAsMarkdown(btn) {
+    const title = this.config.title || 'Component Audit';
+    const components = this.audit.components || [];
+    const inconsistencies = this.audit.inconsistencies || [];
+    const categories = new Set(components.map(c => c.category));
+
+    let md = `# ${title}\n\n`;
+    md += `**${components.length} components** across **${categories.size} categories**`;
+    if (inconsistencies.length > 0) {
+      md += ` · **${inconsistencies.length} issues** detected`;
+    }
+    md += '\n\n';
+
+    // Components table
+    md += '## Components\n\n';
+    md += '| Component | Category | File | Props | Variants | Uses |\n';
+    md += '|-----------|----------|------|-------|----------|------|\n';
+    components.forEach(c => {
+      const props = (c.props || []).join(', ');
+      const variants = (c.variants || []).map(v => v.label || v.key).join(', ');
+      const uses = c.usageCount != null ? c.usageCount : '';
+      const file = c.filePath || '';
+      md += `| ${c.name} | ${c.category} | ${file} | ${props} | ${variants} | ${uses} |\n`;
+    });
+
+    // Issues
+    if (inconsistencies.length > 0) {
+      md += '\n## Issues\n';
+      inconsistencies.forEach(inc => {
+        md += `\n### ⚠ ${inc.message}\n`;
+        if (inc.suggestion) {
+          md += `→ ${inc.suggestion}\n`;
+        }
+      });
+    }
+
+    navigator.clipboard.writeText(md).then(() => {
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('mt-catalog-copy-btn-copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('mt-catalog-copy-btn-copied');
+      }, 2000);
+    });
   },
 
   autoScalePreview(previewEl) {

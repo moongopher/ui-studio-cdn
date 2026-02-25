@@ -186,6 +186,26 @@
   color: #fff;
 }
 
+/* Copy as Markdown button */
+.mt-catalog-copy-btn {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.mt-catalog-copy-btn:hover {
+  border-color: var(--c-primary);
+  color: var(--c-primary);
+}
+.mt-catalog-copy-btn-copied {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
 /* --- Card Grid --- */
 .mt-catalog-grid {
   flex: 1;
