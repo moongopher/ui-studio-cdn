@@ -3389,22 +3389,86 @@ function validateConfig(config) {
     if (count < 4) {
       console.warn(`[engine] Option ${opt.id} "${opt.name}" has ${count} variant(s) — minimum 4 recommended.`);
     }
+    if (opt.type === 'token') {
+      if (!opt.values) {
+        console.warn(`[engine] Token option ${opt.id} "${opt.name}" missing "values" field.`);
+      }
+      if (!opt.target || (!opt.target.property && !opt.target.properties)) {
+        console.warn(`[engine] Token option ${opt.id} "${opt.name}" missing target.property or target.properties.`);
+      }
+    }
+    if (opt.type === 'component') {
+      if (!opt.target || !opt.target.component) {
+        console.warn(`[engine] Component option ${opt.id} "${opt.name}" missing target.component.`);
+      }
+    }
+  });
+}
+
+function applyTokenValue(opt, variantKey) {
+  const val = (opt.values || {})[variantKey];
+  if (val == null) return;
+  if (typeof val === 'object') {
+    Object.entries(val).forEach(([prop, v]) => {
+      document.documentElement.style.setProperty(prop, v);
+    });
+  } else {
+    const prop = opt.target && opt.target.property;
+    if (prop) document.documentElement.style.setProperty(prop, val);
+  }
+}
+
+function initComponentVariants(config) {
+  config.options.forEach(opt => {
+    if (opt.type !== 'component') return;
+    const componentName = opt.target && opt.target.component;
+    if (!componentName) return;
+    const defaultKey = opt.defaultVariant || Object.keys(opt.variants || {})[0];
+    document.querySelectorAll('[data-mt-component="' + componentName + '"]').forEach(el => {
+      const variantKey = el.getAttribute('data-mt-variant');
+      el.style.display = (variantKey === defaultKey) ? '' : 'none';
+    });
   });
 }
 
 function generateApplyOptions(config) {
   console.log('[engine] Auto-generated applyOptions from config');
+
+  // Initialize component variant visibility on boot
+  initComponentVariants(config);
+
+  // Apply default token values on boot
+  config.options.forEach(opt => {
+    if (opt.type !== 'token') return;
+    const defaultKey = opt.defaultVariant || Object.keys(opt.variants || {})[0];
+    applyTokenValue(opt, defaultKey);
+  });
+
   return function applyOptions(active, variants) {
     config.options.forEach(opt => {
-      if (opt.target && opt.target.el) {
-        toggle(opt.target.el, active.has(opt.id));
-      }
-      if (opt.variants) {
-        const els = {};
-        Object.keys(opt.variants).forEach(key => {
-          els[key] = opt.target.el + '-' + key;
+      if (opt.type === 'token') {
+        const selectedKey = variants[opt.id];
+        if (selectedKey) applyTokenValue(opt, selectedKey);
+      } else if (opt.type === 'component') {
+        const componentName = opt.target && opt.target.component;
+        if (!componentName) return;
+        const selectedKey = variants[opt.id];
+        document.querySelectorAll('[data-mt-component="' + componentName + '"]').forEach(el => {
+          const variantKey = el.getAttribute('data-mt-variant');
+          el.style.display = (variantKey === selectedKey) ? '' : 'none';
         });
-        toggleVariant(els, active.has(opt.id), variants[opt.id]);
+      } else {
+        // Standard: existing show/hide by element ID
+        if (opt.target && opt.target.el) {
+          toggle(opt.target.el, active.has(opt.id));
+        }
+        if (opt.variants) {
+          const els = {};
+          Object.keys(opt.variants).forEach(key => {
+            els[key] = opt.target.el + '-' + key;
+          });
+          toggleVariant(els, active.has(opt.id), variants[opt.id]);
+        }
       }
     });
   };
