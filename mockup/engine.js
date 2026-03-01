@@ -3164,34 +3164,60 @@ class OptionsPanel extends HTMLElement {
   // --- Utility ---
   /* --- Variant Thumbnail Rendering --- */
 
-  _renderThumbs(opt, cardsEl) {
-    if (!opt.target || !opt.target.el || !opt.variants) return;
-    const targetEl = document.getElementById(opt.target.el);
-    if (!targetEl) return;
-
-    // Target may be inside a hidden view/container — temporarily reveal for measurement
+  _revealForMeasure(targetEl) {
     const view = targetEl.closest('.mt-view');
     const viewsContainer = view ? view.parentElement : null;
     const restore = [];
-    // Reveal #mt-views container if hidden
     if (viewsContainer && getComputedStyle(viewsContainer).display === 'none') {
       restore.push({ el: viewsContainer, props: { display: viewsContainer.style.display, position: viewsContainer.style.position, visibility: viewsContainer.style.visibility, pointerEvents: viewsContainer.style.pointerEvents } });
-      viewsContainer.style.display = 'block';
-      viewsContainer.style.position = 'absolute';
-      viewsContainer.style.visibility = 'hidden';
-      viewsContainer.style.pointerEvents = 'none';
+      Object.assign(viewsContainer.style, { display: 'block', position: 'absolute', visibility: 'hidden', pointerEvents: 'none' });
     }
-    // Reveal the view itself if hidden
     if (view && getComputedStyle(view).display === 'none') {
       restore.push({ el: view, props: { display: view.style.display, position: view.style.position, visibility: view.style.visibility, pointerEvents: view.style.pointerEvents } });
-      view.style.display = 'block';
-      view.style.position = 'absolute';
-      view.style.visibility = 'hidden';
-      view.style.pointerEvents = 'none';
+      Object.assign(view.style, { display: 'block', position: 'absolute', visibility: 'hidden', pointerEvents: 'none' });
     }
+    return () => restore.forEach(r => Object.entries(r.props).forEach(([k, v]) => r.el.style[k] = v));
+  }
 
-    // Temporarily show the active variant for each card to get correct measurements
-    // First, ensure target el itself is visible
+  _fitCloneInThumb(thumbDiv, clone) {
+    this._adoptPageStyles();
+    const pad = 8;
+    const inner = document.createElement('div');
+    inner.className = 'guide-variant-thumb-inner';
+    inner.appendChild(clone);
+    thumbDiv.appendChild(inner);
+    const cloneW = inner.scrollWidth;
+    const cloneH = inner.scrollHeight;
+    if (!cloneW || !cloneH) return;
+    const thumbW = thumbDiv.offsetWidth || 120;
+    const thumbH = thumbDiv.offsetHeight || 120;
+    const scale = Math.min((thumbW - pad * 2) / cloneW, (thumbH - pad * 2) / cloneH, 1);
+    const scaledW = cloneW * scale;
+    const scaledH = cloneH * scale;
+    inner.style.transform = `scale(${scale})`;
+    inner.style.width = cloneW + 'px';
+    inner.style.left = ((thumbW - scaledW) / 2) + 'px';
+    inner.style.top = ((thumbH - scaledH) / 2) + 'px';
+  }
+
+  _renderThumbs(opt, cardsEl) {
+    if (!opt.variants) return;
+    if (opt.type === 'token') {
+      this._renderThumbsToken(opt, cardsEl);
+    } else if (opt.type === 'component') {
+      this._renderThumbsComponent(opt, cardsEl);
+    } else {
+      this._renderThumbsStandard(opt, cardsEl);
+    }
+  }
+
+  _renderThumbsStandard(opt, cardsEl) {
+    if (!opt.target || !opt.target.el) return;
+    const targetEl = document.getElementById(opt.target.el);
+    if (!targetEl) return;
+
+    const restoreFn = this._revealForMeasure(targetEl);
+
     const targetWasHidden = targetEl.classList.contains('mt-hidden');
     if (targetWasHidden) targetEl.classList.remove('mt-hidden');
 
@@ -3200,20 +3226,17 @@ class OptionsPanel extends HTMLElement {
       const thumbDiv = card.querySelector('.guide-variant-thumb');
       if (!thumbDiv || !key) return;
 
-      // Clone just the variant element for a tighter crop
       const variantElId = `${opt.target.el}-${key}`;
       const variantEl = document.getElementById(variantElId);
       if (!variantEl) return;
 
-      // Temporarily show this variant for cloning
       const prevDisplay = variantEl.style.display;
       variantEl.style.display = '';
-      variantEl.offsetHeight; // force reflow so scrollWidth/scrollHeight are correct
+      variantEl.offsetHeight; // force reflow
 
       const clone = variantEl.cloneNode(true);
       clone.removeAttribute('id');
       clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-      // Strip crossfade inline styles that toggleVariant may have left on the element
       clone.style.opacity = '';
       clone.style.position = '';
       clone.style.top = '';
@@ -3225,43 +3248,74 @@ class OptionsPanel extends HTMLElement {
 
       variantEl.style.display = prevDisplay;
 
-      // Adopt light DOM stylesheets into shadow root (once) so clone renders correctly
-      this._adoptPageStyles();
-
-      // Insert clone into thumb, measure its natural size, then scale to fit
-      const pad = 8;
-      const inner = document.createElement('div');
-      inner.className = 'guide-variant-thumb-inner';
-      inner.appendChild(clone);
-      thumbDiv.appendChild(inner);
-
-      const cloneW = inner.scrollWidth;
-      const cloneH = inner.scrollHeight;
-      if (!cloneW || !cloneH) return;
-
-      const thumbW = thumbDiv.offsetWidth || 120;
-      const thumbH = thumbDiv.offsetHeight || 120;
-      const scaleX = (thumbW - pad * 2) / cloneW;
-      const scaleY = (thumbH - pad * 2) / cloneH;
-      const scale = Math.min(scaleX, scaleY, 1);
-
-      // Center the scaled content within the thumbnail
-      const scaledW = cloneW * scale;
-      const scaledH = cloneH * scale;
-      const offsetX = (thumbW - scaledW) / 2;
-      const offsetY = (thumbH - scaledH) / 2;
-
-      inner.style.transform = `scale(${scale})`;
-      inner.style.width = cloneW + 'px';
-      inner.style.left = offsetX + 'px';
-      inner.style.top = offsetY + 'px';
+      this._fitCloneInThumb(thumbDiv, clone);
     });
 
-    // Restore hidden state
     if (targetWasHidden) targetEl.classList.add('mt-hidden');
-    restore.forEach(r => {
-      Object.entries(r.props).forEach(([k, v]) => r.el.style[k] = v);
+    restoreFn();
+  }
+
+  _renderThumbsToken(opt, cardsEl) {
+    const viewId = (opt.tags && opt.tags[0]) || (CONFIG.views[0] && CONFIG.views[0].id);
+    const viewEl = viewId ? document.getElementById('view-' + viewId) : document.querySelector('.mt-view');
+    const surface = viewEl && viewEl.querySelector('.mt-canvas-surface');
+    if (!surface) return;
+    const restoreFn = this._revealForMeasure(surface);
+
+    cardsEl.querySelectorAll('.guide-variant-card').forEach(card => {
+      const key = card.dataset.gvKey;
+      const thumbDiv = card.querySelector('.guide-variant-thumb');
+      if (!thumbDiv || !key) return;
+
+      const clone = surface.cloneNode(true);
+      clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+      clone.removeAttribute('id');
+
+      // Apply this variant's token value so it cascades within the clone
+      const val = (opt.values || {})[key];
+      if (val != null) {
+        if (typeof val === 'object') {
+          Object.entries(val).forEach(([prop, v]) => clone.style.setProperty(prop, v));
+        } else {
+          const prop = opt.target && opt.target.property;
+          if (prop) clone.style.setProperty(prop, val);
+        }
+      }
+
+      this._fitCloneInThumb(thumbDiv, clone);
     });
+
+    restoreFn();
+  }
+
+  _renderThumbsComponent(opt, cardsEl) {
+    const viewId = (opt.tags && opt.tags[0]) || (CONFIG.views[0] && CONFIG.views[0].id);
+    const viewEl = viewId ? document.getElementById('view-' + viewId) : document.querySelector('.mt-view');
+    const surface = viewEl && viewEl.querySelector('.mt-canvas-surface');
+    if (!surface) return;
+    const restoreFn = this._revealForMeasure(surface);
+    const componentName = opt.target && opt.target.component;
+
+    cardsEl.querySelectorAll('.guide-variant-card').forEach(card => {
+      const key = card.dataset.gvKey;
+      const thumbDiv = card.querySelector('.guide-variant-thumb');
+      if (!thumbDiv || !key) return;
+
+      const clone = surface.cloneNode(true);
+      clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+      clone.removeAttribute('id');
+
+      // Show only this variant's component instances
+      if (componentName) {
+        clone.querySelectorAll(`[data-mt-component="${componentName}"]`).forEach(el => {
+          el.style.display = (el.getAttribute('data-mt-variant') === key) ? '' : 'none';
+        });
+      }
+
+      this._fitCloneInThumb(thumbDiv, clone);
+    });
+
+    restoreFn();
   }
 
   _adoptPageStyles() {
