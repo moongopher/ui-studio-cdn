@@ -601,7 +601,27 @@ const CompareMode = {
         const freshClone = sourceContent.cloneNode(true);
         const targetEl = opt.target && opt.target.el;
 
-        if (targetEl) {
+        if (opt.type === 'token') {
+          // Token: set the CSS variable on the cell content so it cascades within this card
+          const val = (opt.values || {})[key];
+          if (val != null) {
+            if (typeof val === 'object') {
+              Object.entries(val).forEach(([prop, v]) => content.style.setProperty(prop, v));
+            } else {
+              const prop = opt.target && opt.target.property;
+              if (prop) content.style.setProperty(prop, val);
+            }
+          }
+        } else if (opt.type === 'component') {
+          // Component: show only this variant's elements, hide all others
+          const componentName = opt.target && opt.target.component;
+          if (componentName) {
+            freshClone.querySelectorAll(`[data-mt-component="${CSS.escape(componentName)}"]`).forEach(el => {
+              el.style.display = (el.getAttribute('data-mt-variant') === key) ? '' : 'none';
+            });
+          }
+        } else if (targetEl) {
+          // Standard: show/hide by element ID
           CONFIG.options.forEach(other => {
             if (other.target && other.target.el && other.target.el !== targetEl) {
               const otherEl = freshClone.querySelector(`#${CSS.escape(other.target.el)}`);
