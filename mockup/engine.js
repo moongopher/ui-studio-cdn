@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.12';
+const ENGINE_VERSION = '0.13';
 
 /** Extract label from variant value (string or {label, pros, cons} object) */
 function _vLabel(v) { return typeof v === 'object' && v !== null ? v.label : String(v || ''); }
@@ -272,6 +272,22 @@ class OptionsPanel extends HTMLElement {
         <button class="panel-help-btn" title="Help & About">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" fill="currentColor" font-size="9" font-weight="600" font-family="system-ui">?</text></svg>
         </button>
+        <div class="panel-export-wrap">
+          <button class="panel-export-btn" title="Export">
+            <svg width="14" height="14" viewBox="0 -960 960 960" fill="currentColor"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+          </button>
+          <div class="panel-export-dropdown" style="display:none">
+            <button class="panel-export-dropdown-item" data-export="pen">
+              <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M160-400v-80h640v80H160Zm0-160v-80h640v80H160Zm200 320v-80h440v80H360Zm0-480v-80h440v80H360Z"/></svg>
+              <span>Download .pen file</span>
+            </button>
+            <div class="panel-export-dropdown-sep"></div>
+            <button class="panel-export-dropdown-item" data-export="agent">
+              <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H160v400Z"/></svg>
+              <span>Download agent-config.json</span>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="panel-header">
         <h2><span class="panel-title">${this.esc(CONFIG.title)}</span> <span class="active-count">${this.activeOptions.size}</span></h2>
@@ -342,6 +358,10 @@ class OptionsPanel extends HTMLElement {
           <button class="help-tab" data-tab="about">
             <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
             <span>About</span>
+          </button>
+          <button class="help-tab" data-tab="export">
+            <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+            <span>Export</span>
           </button>
         </div>
         <div class="help-modal-content">
@@ -520,6 +540,27 @@ class OptionsPanel extends HTMLElement {
               </div>
             </div>
           </div>
+          <div class="help-tab-panel" data-panel="export">
+            <p style="font-size:var(--text-sm);color:var(--c-text-muted);margin:0 0 var(--sp-4) 0;">
+              Export this mockup's configuration as a Pencil design file (.pen) with an AI agent config for the Pencil CLI.
+            </p>
+            <div class="help-export-actions">
+              <button class="help-export-btn help-export-pen">
+                <svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+                <div>
+                  <div class="help-export-btn-title">Download .pen file</div>
+                  <div class="help-export-btn-desc">Pencil design scaffold with variables, components, and views</div>
+                </div>
+              </button>
+              <button class="help-export-btn help-export-agent">
+                <svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H160v400Zm140-40h200v-80H300v80Zm-100-120h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Z"/></svg>
+                <div>
+                  <div class="help-export-btn-title">Download agent-config.json</div>
+                  <div class="help-export-btn-desc">AI prompts for Pencil CLI to fill in visual designs</div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -616,7 +657,8 @@ class OptionsPanel extends HTMLElement {
 
     /* --- Toolbar Buttons (shared base) --- */
     .panel-collapse-btn,
-    .panel-help-btn {
+    .panel-help-btn,
+    .panel-export-btn {
       width: 28px;
       height: 28px;
       border: none;
@@ -633,14 +675,63 @@ class OptionsPanel extends HTMLElement {
       flex-shrink: 0;
     }
     .panel-collapse-btn:hover,
-    .panel-help-btn:hover {
+    .panel-help-btn:hover,
+    .panel-export-btn:hover {
       background: var(--c-surface-alt-hover);
       color: var(--c-text);
     }
     .panel-collapse-btn svg,
-    .panel-help-btn svg { display: block; }
+    .panel-help-btn svg,
+    .panel-export-btn svg { display: block; }
     .panel-help-btn { margin-left: var(--sp-1); }
     .panel.collapsed .panel-help-btn { display: none; }
+
+    /* --- Export Button + Dropdown --- */
+    .panel-export-wrap {
+      position: relative;
+      margin-left: 2px;
+    }
+    .panel-export-btn { color: var(--c-primary); }
+    .panel.collapsed .panel-export-btn { display: none; }
+    .panel-export-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      min-width: 220px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border-light);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-float);
+      z-index: 100;
+      padding: var(--sp-1) 0;
+    }
+    .panel-export-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      width: 100%;
+      padding: var(--sp-2) var(--sp-3);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      color: var(--c-text);
+      font-family: var(--ff);
+      text-align: left;
+      white-space: nowrap;
+    }
+    .panel-export-dropdown-item:hover {
+      background: var(--c-surface-alt-hover);
+    }
+    .panel-export-dropdown-item svg {
+      flex-shrink: 0;
+      color: var(--c-text-muted);
+    }
+    .panel-export-dropdown-sep {
+      height: 1px;
+      background: var(--c-border-light);
+      margin: var(--sp-1) 0;
+    }
 
     /* --- Header Hint --- */
     .panel-hint {
@@ -1505,6 +1596,42 @@ class OptionsPanel extends HTMLElement {
       background: var(--c-danger);
       color: white;
     }
+    .help-export-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-3);
+    }
+    .help-export-btn {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--sp-3);
+      padding: var(--sp-3) var(--sp-4);
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      text-align: left;
+      transition: all var(--t-fast);
+    }
+    .help-export-btn:hover {
+      background: var(--c-bg-hover);
+      border-color: var(--c-primary);
+    }
+    .help-export-btn svg {
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--c-primary);
+    }
+    .help-export-btn-title {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--c-text);
+    }
+    .help-export-btn-desc {
+      font-size: var(--text-xs);
+      color: var(--c-text-muted);
+      margin-top: 2px;
+    }
     .help-bg-picker {
       display: flex;
       gap: 0;
@@ -2095,6 +2222,34 @@ class OptionsPanel extends HTMLElement {
 
     // --- Shared Events ---
     root.querySelector('.panel-help-btn').addEventListener('click', () => this.toggleHelpOverlay());
+
+    // Export dropdown
+    const exportBtn = root.querySelector('.panel-export-btn');
+    const exportDropdown = root.querySelector('.panel-export-dropdown');
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = exportDropdown.style.display !== 'none';
+      exportDropdown.style.display = open ? 'none' : '';
+    });
+    root.querySelector('.panel-export-dropdown-item[data-export="pen"]').addEventListener('click', () => {
+      const pen = this.generatePenFile(CONFIG);
+      const slug = this._slugify(CONFIG.title || 'mockup');
+      this.downloadFile(`${slug}.pen`, JSON.stringify(pen, null, 2), 'application/json');
+      exportDropdown.style.display = 'none';
+    });
+    root.querySelector('.panel-export-dropdown-item[data-export="agent"]').addEventListener('click', () => {
+      const slug = this._slugify(CONFIG.title || 'mockup');
+      const penFilename = `${slug}.pen`;
+      const agentConfig = this.generateAgentConfig(CONFIG, penFilename);
+      this.downloadFile('pencil-agent-config.json', JSON.stringify(agentConfig, null, 2), 'application/json');
+      exportDropdown.style.display = 'none';
+    });
+    root.addEventListener('click', (e) => {
+      if (!e.target.closest('.panel-export-wrap')) {
+        exportDropdown.style.display = 'none';
+      }
+    });
+
     root.querySelector('.btn-copy').addEventListener('click', () => this.copyPrompt());
     root.querySelector('.btn-reset').addEventListener('click', () => this.resetAll());
     root.querySelector('.panel-collapse-btn').addEventListener('click', () => {
@@ -2126,6 +2281,15 @@ class OptionsPanel extends HTMLElement {
         e.preventDefault();
         this.toggleHelpOverlay();
         return;
+      }
+
+      if (e.key === 'Escape') {
+        const dd = this.shadowRoot.querySelector('.panel-export-dropdown');
+        if (dd && dd.style.display !== 'none') {
+          e.preventDefault();
+          dd.style.display = 'none';
+          return;
+        }
       }
 
       if (e.key === 'Escape' && this.helpOverlayOpen) {
@@ -2164,6 +2328,26 @@ class OptionsPanel extends HTMLElement {
         if (resetIcon) resetIcon.style.display = tabId === 'settings' ? '' : 'none';
       });
     });
+
+    // Export buttons
+    const exportPenBtn = this.shadowRoot.querySelector('.help-export-pen');
+    if (exportPenBtn) {
+      exportPenBtn.addEventListener('click', () => {
+        const pen = this.generatePenFile(CONFIG);
+        const slug = this._slugify(CONFIG.title || 'mockup');
+        const filename = `${slug}.pen`;
+        this.downloadFile(filename, JSON.stringify(pen, null, 2), 'application/json');
+      });
+    }
+    const exportAgentBtn = this.shadowRoot.querySelector('.help-export-agent');
+    if (exportAgentBtn) {
+      exportAgentBtn.addEventListener('click', () => {
+        const slug = this._slugify(CONFIG.title || 'mockup');
+        const penFilename = `${slug}.pen`;
+        const agentConfig = this.generateAgentConfig(CONFIG, penFilename);
+        this.downloadFile('pencil-agent-config.json', JSON.stringify(agentConfig, null, 2), 'application/json');
+      });
+    }
 
     // Reset state button
     const resetBtn = this.shadowRoot.querySelector('.help-reset-btn');
@@ -3198,6 +3382,227 @@ class OptionsPanel extends HTMLElement {
     inner.style.width = cloneW + 'px';
     inner.style.left = ((thumbW - scaledW) / 2) + 'px';
     inner.style.top = ((thumbH - scaledH) / 2) + 'px';
+  }
+
+  // --- Pencil Export methods ---
+
+  downloadFile(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  _slugify(str) {
+    return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  _inferPenType(values, property) {
+    if (!values) return 'string';
+    const sample = Object.values(values)[0];
+    if (typeof sample === 'object') {
+      const firstVal = Object.values(sample)[0];
+      if (typeof firstVal === 'string' && firstVal.match(/^#|^rgb|^hsl/)) return 'color';
+      return 'string';
+    }
+    if (typeof sample === 'string') {
+      if (sample.match(/^#|^rgb|^hsl/)) return 'color';
+      if (sample.match(/^\d+(\.\d+)?(px|rem|em|%)$/)) return 'number';
+    }
+    if (property && property.match(/color|background|fill|stroke/i)) return 'color';
+    if (property && property.match(/size|width|height|radius|gap|padding|margin/i)) return 'number';
+    return 'string';
+  }
+
+  _penNumeric(val) {
+    if (typeof val === 'number') return val;
+    const n = parseFloat(val);
+    return isNaN(n) ? 0 : n;
+  }
+
+  _buildVariantPrompt(opt, variantKey, variantLabel, allVariants, tokenContext) {
+    const optType = opt.type || 'standard';
+    const variantLabels = Object.values(allVariants).map(v => _vLabel(v));
+    const desc = opt.desc ? `\n${opt.desc}` : '';
+    const article = /^[aeiou]/i.test(variantLabel) ? 'an' : 'a';
+
+    let lines;
+    if (optType === 'component') {
+      lines = [
+        `Design ${article} ${variantLabel} variant for the "${opt.name}" component.${desc}`,
+        ``,
+        `This is variant "${variantKey}" of [${variantLabels.join(', ')}].`
+      ];
+    } else {
+      lines = [
+        `Design ${article} ${variantLabel} variant for "${opt.name}".${desc}`,
+        ``,
+        `This is variant "${variantKey}" of [${variantLabels.join(', ')}].`
+      ];
+    }
+
+    if (tokenContext) {
+      lines.push('', tokenContext);
+    }
+
+    lines.push('', 'Make it visually distinct while maintaining design consistency.');
+    return lines.join('\n');
+  }
+
+  generatePenFile(config) {
+    const pen = { version: '2.8', children: [] };
+    const themes = {};
+    const variables = {};
+
+    // Token options → themes + variables
+    config.options.filter(o => o.type === 'token').forEach(opt => {
+      const axisId = this._slugify(opt.name);
+      themes[axisId] = Object.keys(opt.variants);
+
+      if (opt.values) {
+        const firstVal = Object.values(opt.values)[0];
+        if (typeof firstVal === 'object') {
+          // Multi-property token (e.g. Color Theme → --mt-primary, --mt-primary-hover)
+          for (const prop of Object.keys(firstVal)) {
+            const varId = `${axisId}-${this._slugify(prop)}`;
+            const inferredType = this._inferPenType({ _: firstVal[prop] }, prop);
+            variables[varId] = {
+              type: inferredType,
+              value: Object.entries(opt.values).map(([vk, propMap]) => ({
+                value: inferredType === 'number' ? this._penNumeric(propMap[prop]) : propMap[prop],
+                theme: { [axisId]: vk }
+              }))
+            };
+          }
+        } else {
+          // Single-property token (e.g. Border Radius → "8px")
+          const inferredType = this._inferPenType(opt.values, opt.target && opt.target.property);
+          variables[axisId] = {
+            type: inferredType,
+            value: Object.entries(opt.values).map(([vk, val]) => ({
+              value: inferredType === 'number' ? this._penNumeric(val) : val,
+              theme: { [axisId]: vk }
+            }))
+          };
+        }
+      }
+    });
+
+    if (Object.keys(themes).length) pen.themes = themes;
+    if (Object.keys(variables).length) pen.variables = variables;
+
+    // Build token context for prompts
+    const varEntries = Object.entries(variables);
+    const tokenContext = varEntries.length
+      ? 'Available theme variables: ' + varEntries.map(([id, v]) => `$${id} (${v.type})`).join(', ') + '.'
+      : '';
+
+    // Build view pages as frames
+    let pageX = 0;
+    const variantW = 200, variantH = 120, variantGap = 24, sectionPad = 20;
+    (config.views || [{ id: 'main', label: 'Main' }]).forEach(view => {
+      const allOpts = [
+        ...config.options.filter(o => o.type === 'component'),
+        ...config.options.filter(o => !o.type || o.type === 'standard').filter(o => o.target && o.target.el)
+      ];
+      const sectionH = variantH + sectionPad * 2;
+      const pageH = allOpts.length * (sectionH + 40) + 40;
+      const pageFrame = {
+        type: 'frame', id: `page-${view.id}`, name: view.label || view.id,
+        x: pageX, y: 0, clip: true, width: 1440, height: Math.max(900, pageH),
+        fill: '#F8FAFC', layout: 'vertical', gap: 40, padding: 40,
+        children: []
+      };
+      pageX += 1540;
+
+      // Component options
+      config.options.filter(o => o.type === 'component').forEach(opt => {
+        const variants = Object.entries(opt.variants);
+        const sectionW = variants.length * (variantW + variantGap) - variantGap + sectionPad * 2;
+        const componentFrame = {
+          type: 'frame', id: `component-${this._slugify(opt.name)}`, name: opt.name,
+          x: 0, y: 0, clip: true, width: sectionW, height: sectionH,
+          fill: '#FFFFFF', layout: 'horizontal', gap: variantGap, padding: sectionPad,
+          children: variants.map(([key, label]) => {
+            const frameId = `${this._slugify(opt.name)}-${key}`;
+            return {
+              type: 'frame', id: frameId, name: _vLabel(label),
+              x: 0, y: 0, clip: true, width: variantW, height: variantH,
+              fill: '#F1F5F9', layout: 'none',
+              children: [{
+                type: 'prompt', id: `${frameId}-prompt`,
+                x: 10, y: 10, width: variantW - 20, height: variantH - 20,
+                content: this._buildVariantPrompt(opt, key, _vLabel(label), opt.variants, tokenContext)
+              }]
+            };
+          })
+        };
+        pageFrame.children.push(componentFrame);
+      });
+
+      // Standard options
+      config.options.filter(o => !o.type || o.type === 'standard').forEach(opt => {
+        if (!opt.target || !opt.target.el) return;
+        const variants = Object.entries(opt.variants);
+        const sectionW = variants.length * (variantW + variantGap) - variantGap + sectionPad * 2;
+        const sectionFrame = {
+          type: 'frame', id: `section-${opt.target.el}`, name: opt.name,
+          x: 0, y: 0, clip: true, width: sectionW, height: sectionH,
+          fill: '#FFFFFF', layout: 'horizontal', gap: variantGap, padding: sectionPad,
+          children: variants.map(([key, label]) => {
+            const frameId = `${opt.target.el}-${key}`;
+            return {
+              type: 'frame', id: frameId, name: _vLabel(label),
+              x: 0, y: 0, clip: true, width: variantW, height: variantH,
+              fill: '#F1F5F9', layout: 'none',
+              children: [{
+                type: 'prompt', id: `${frameId}-prompt`,
+                x: 10, y: 10, width: variantW - 20, height: variantH - 20,
+                content: this._buildVariantPrompt(opt, key, _vLabel(label), opt.variants, tokenContext)
+              }]
+            };
+          })
+        };
+        pageFrame.children.push(sectionFrame);
+      });
+
+      pen.children.push(pageFrame);
+    });
+
+    return pen;
+  }
+
+  generateAgentConfig(config, penFilename) {
+    const slug = this._slugify(config.title || 'mockup');
+    const optionSummary = config.options.map(o => {
+      const type = o.type || 'standard';
+      const variants = Object.entries(o.variants).map(([k, v]) => `${k}: ${_vLabel(v)}`).join(', ');
+      return `- ${o.name} (${type}): ${variants}`;
+    }).join('\n');
+
+    const viewPrompts = (config.views || [{ id: 'main', label: 'Main' }]).map(view => ({
+      view: view.id,
+      prompt: [
+        `Design the "${view.label || view.id}" view of "${config.title}".`,
+        `This mockup has the following configurable options:`,
+        optionSummary,
+        `Create polished, production-quality visual designs for each variant.`,
+        `Use the theme variables defined in the .pen file for token-based options.`,
+        `Ensure each component variant is visually distinct and clearly communicates its purpose.`
+      ].join('\n')
+    }));
+
+    return {
+      version: '1.0',
+      source: penFilename,
+      output: `${slug}-designed.pen`,
+      prompts: viewPrompts
+    };
   }
 
   _renderThumbs(opt, cardsEl) {
