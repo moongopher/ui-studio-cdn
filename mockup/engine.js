@@ -3425,26 +3425,18 @@ class OptionsPanel extends HTMLElement {
     return isNaN(n) ? 0 : n;
   }
 
-  _buildVariantPrompt(opt, variantKey, variantLabel, allVariants, tokenContext) {
-    const optType = opt.type || 'standard';
-    const variantLabels = Object.values(allVariants).map(v => _vLabel(v));
+  _buildVariantPrompt(opt, variantKey, variantLabel, variantList, tokenContext) {
     const desc = opt.desc ? `\n${opt.desc}` : '';
     const article = /^[aeiou]/i.test(variantLabel) ? 'an' : 'a';
+    const target = opt.type === 'component'
+      ? `the "${opt.name}" component`
+      : `"${opt.name}"`;
 
-    let lines;
-    if (optType === 'component') {
-      lines = [
-        `Design ${article} ${variantLabel} variant for the "${opt.name}" component.${desc}`,
-        ``,
-        `This is variant "${variantKey}" of [${variantLabels.join(', ')}].`
-      ];
-    } else {
-      lines = [
-        `Design ${article} ${variantLabel} variant for "${opt.name}".${desc}`,
-        ``,
-        `This is variant "${variantKey}" of [${variantLabels.join(', ')}].`
-      ];
-    }
+    const lines = [
+      `Design ${article} ${variantLabel} variant for ${target}.${desc}`,
+      ``,
+      `This is variant "${variantKey}" of [${variantList}].`
+    ];
 
     if (tokenContext) {
       lines.push('', tokenContext);
@@ -3505,6 +3497,18 @@ class OptionsPanel extends HTMLElement {
     // Build view pages as frames
     let pageX = 0;
     const variantW = 200, variantH = 120, variantGap = 24, sectionPad = 20;
+
+    const buildVariantFrame = (frameId, vLabel, opt, key, variantList) => ({
+      type: 'frame', id: frameId, name: vLabel,
+      x: 0, y: 0, clip: true, width: variantW, height: variantH,
+      fill: '#F1F5F9', layout: 'none',
+      children: [{
+        type: 'prompt', id: `${frameId}-prompt`,
+        x: 10, y: 10, width: variantW - 20, height: variantH - 20,
+        content: this._buildVariantPrompt(opt, key, vLabel, variantList, tokenContext)
+      }]
+    });
+
     (config.views || [{ id: 'main', label: 'Main' }]).forEach(view => {
       const allOpts = [
         ...config.options.filter(o => o.type === 'component'),
@@ -3523,24 +3527,15 @@ class OptionsPanel extends HTMLElement {
       // Component options
       config.options.filter(o => o.type === 'component').forEach(opt => {
         const variants = Object.entries(opt.variants);
+        const variantList = Object.values(opt.variants).map(v => _vLabel(v)).join(', ');
         const sectionW = variants.length * (variantW + variantGap) - variantGap + sectionPad * 2;
         const componentFrame = {
           type: 'frame', id: `component-${this._slugify(opt.name)}`, name: opt.name,
           x: 0, y: 0, clip: true, width: sectionW, height: sectionH,
           fill: '#FFFFFF', layout: 'horizontal', gap: variantGap, padding: sectionPad,
-          children: variants.map(([key, label]) => {
-            const frameId = `${this._slugify(opt.name)}-${key}`;
-            return {
-              type: 'frame', id: frameId, name: _vLabel(label),
-              x: 0, y: 0, clip: true, width: variantW, height: variantH,
-              fill: '#F1F5F9', layout: 'none',
-              children: [{
-                type: 'prompt', id: `${frameId}-prompt`,
-                x: 10, y: 10, width: variantW - 20, height: variantH - 20,
-                content: this._buildVariantPrompt(opt, key, _vLabel(label), opt.variants, tokenContext)
-              }]
-            };
-          })
+          children: variants.map(([key, label]) =>
+            buildVariantFrame(`${this._slugify(opt.name)}-${key}`, _vLabel(label), opt, key, variantList)
+          )
         };
         pageFrame.children.push(componentFrame);
       });
@@ -3549,24 +3544,15 @@ class OptionsPanel extends HTMLElement {
       config.options.filter(o => !o.type || o.type === 'standard').forEach(opt => {
         if (!opt.target || !opt.target.el) return;
         const variants = Object.entries(opt.variants);
+        const variantList = Object.values(opt.variants).map(v => _vLabel(v)).join(', ');
         const sectionW = variants.length * (variantW + variantGap) - variantGap + sectionPad * 2;
         const sectionFrame = {
           type: 'frame', id: `section-${opt.target.el}`, name: opt.name,
           x: 0, y: 0, clip: true, width: sectionW, height: sectionH,
           fill: '#FFFFFF', layout: 'horizontal', gap: variantGap, padding: sectionPad,
-          children: variants.map(([key, label]) => {
-            const frameId = `${opt.target.el}-${key}`;
-            return {
-              type: 'frame', id: frameId, name: _vLabel(label),
-              x: 0, y: 0, clip: true, width: variantW, height: variantH,
-              fill: '#F1F5F9', layout: 'none',
-              children: [{
-                type: 'prompt', id: `${frameId}-prompt`,
-                x: 10, y: 10, width: variantW - 20, height: variantH - 20,
-                content: this._buildVariantPrompt(opt, key, _vLabel(label), opt.variants, tokenContext)
-              }]
-            };
-          })
+          children: variants.map(([key, label]) =>
+            buildVariantFrame(`${opt.target.el}-${key}`, _vLabel(label), opt, key, variantList)
+          )
         };
         pageFrame.children.push(sectionFrame);
       });
