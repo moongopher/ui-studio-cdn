@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI CSS + Engine Features Test</title>
+<link rel="stylesheet" href="./engine.css">
+<link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<script>
+// Test config using ALL new shorthand features:
+// - No explicit IDs (auto-assigned)
+// - "property" shorthand (auto-creates target)
+// - "scale" shorthand (auto-generates variants+values)
+// - No "type" (auto-inferred from target)
+// - No "tags" (auto-assigned from first view)
+// - "default" shorthand (maps to defaultVariant)
+window.MOCKUP = {
+  config: {
+    "title": "UI CSS + Shorthand Test",
+    "storageKey": "ui-test-mockup",
+    "filePath": "",
+    "views": [
+      { "id": "dashboard", "label": "Dashboard" },
+      { "id": "form", "label": "Form" }
+    ],
+    "options": [
+      {
+        "name": "Card Radius",
+        "desc": "Corner roundness of cards and containers.",
+        "property": "--mt-card-radius",
+        "scale": "radius",
+        "default": "md"
+      },
+      {
+        "name": "Card Shadow",
+        "desc": "Shadow depth on cards.",
+        "property": "--mt-card-shadow",
+        "scale": "shadow",
+        "default": "md"
+      },
+      {
+        "name": "Body Font Size",
+        "desc": "Base font size for content.",
+        "property": "--mt-body-font",
+        "scale": "font-size",
+        "default": "md"
+      },
+      {
+        "name": "Content Gap",
+        "desc": "Spacing between grid items.",
+        "property": "--mt-gap",
+        "scale": "gap",
+        "default": "md"
+      }
+    ]
+  },
+  views: {}
+};
+
+// Dashboard view — uses ui.css classes + token vars
+window.MOCKUP.views.dashboard = `
+<div style="padding: 24px; font-family: var(--ui-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif); font-size: var(--mt-body-font, 16px);">
+
+  <!-- Page Header -->
+  <div class="ui-page-header">
+    <div>
+      <h1 class="ui-page-title">Dashboard</h1>
+      <p class="ui-page-desc">Overview of your business metrics</p>
+    </div>
+    <div class="ui-page-actions">
+      <button class="ui-btn">Export</button>
+      <button class="ui-btn primary">+ New Report</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="ui-tabs" style="margin-bottom: 24px;">
+    <button class="ui-tab active">Overview</button>
+    <button class="ui-tab">Analytics</button>
+    <button class="ui-tab">Reports</button>
+    <button class="ui-tab">Notifications</button>
+  </div>
+
+  <!-- Stat Cards Grid — uses token vars -->
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--mt-gap, 16px); margin-bottom: 24px;">
+    <div class="ui-stat-card" style="border-radius: var(--mt-card-radius, 8px); box-shadow: var(--mt-card-shadow, 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06));">
+      <span class="ui-stat-label">Total Revenue</span>
+      <span class="ui-stat-value">$45,231</span>
+      <span class="ui-stat-trend up">+20.1% from last month</span>
+    </div>
+    <div class="ui-stat-card" style="border-radius: var(--mt-card-radius, 8px); box-shadow: var(--mt-card-shadow, 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06));">
+      <span class="ui-stat-label">Subscriptions</span>
+      <span class="ui-stat-value">+2,350</span>
+      <span class="ui-stat-trend up">+180.1% from last month</span>
+    </div>
+    <div class="ui-stat-card" style="border-radius: var(--mt-card-radius, 8px); box-shadow: var(--mt-card-shadow, 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06));">
+      <span class="ui-stat-label">Active Users</span>
+      <span class="ui-stat-value">12,234</span>
+      <span class="ui-stat-trend down">-4.2% from last month</span>
+    </div>
+    <div class="ui-stat-card" style="border-radius: var(--mt-card-radius, 8px); box-shadow: var(--mt-card-shadow, 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06));">
+      <span class="ui-stat-label">Conversion Rate</span>
+      <span class="ui-stat-value">3.2%</span>
+      <span class="ui-stat-trend up">+0.4% from last month</span>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="ui-card" style="border-radius: var(--mt-card-radius, 8px); box-shadow: var(--mt-card-shadow, 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06)); padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--ui-gray-200);">
+      <div class="ui-flex-between">
+        <h3 class="ui-card-title">Recent Orders</h3>
+        <div class="ui-search" style="width: 240px;">
+          <input class="ui-search-input" placeholder="Search orders..." type="text">
+        </div>
+      </div>
+    </div>
+    <table class="ui-table">
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="ui-flex ui-gap-2"><div class="ui-avatar">JD</div> <span>Jane Doe</span></div></td>
+          <td><span class="ui-badge success dot">Completed</span></td>
+          <td>$250.00</td>
+          <td class="ui-text-muted">Mar 1, 2026</td>
+        </tr>
+        <tr>
+          <td><div class="ui-flex ui-gap-2"><div class="ui-avatar">AS</div> <span>Alex Smith</span></div></td>
+          <td><span class="ui-badge warning dot">Pending</span></td>
+          <td>$150.00</td>
+          <td class="ui-text-muted">Feb 28, 2026</td>
+        </tr>
+        <tr>
+          <td><div class="ui-flex ui-gap-2"><div class="ui-avatar">MJ</div> <span>Maria Johnson</span></div></td>
+          <td><span class="ui-badge success dot">Completed</span></td>
+          <td>$350.00</td>
+          <td class="ui-text-muted">Feb 27, 2026</td>
+        </tr>
+        <tr>
+          <td><div class="ui-flex ui-gap-2"><div class="ui-avatar">RB</div> <span>Robert Brown</span></div></td>
+          <td><span class="ui-badge danger dot">Cancelled</span></td>
+          <td>$450.00</td>
+          <td class="ui-text-muted">Feb 26, 2026</td>
+        </tr>
+        <tr>
+          <td><div class="ui-flex ui-gap-2"><div class="ui-avatar">EW</div> <span>Emily Wilson</span></div></td>
+          <td><span class="ui-badge primary dot">Processing</span></td>
+          <td>$550.00</td>
+          <td class="ui-text-muted">Feb 25, 2026</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Alert -->
+  <div class="ui-alert info" style="margin-top: 16px; border-radius: var(--mt-card-radius, 8px);">
+    <div>
+      <div class="ui-alert-title">System Update</div>
+      New dashboard analytics features will be available starting next week.
+    </div>
+  </div>
+</div>
+`;
+
+// Form view — more ui.css components
+window.MOCKUP.views.form = `
+<div style="padding: 24px; max-width: 600px; font-family: var(--ui-font); font-size: var(--mt-body-font, 16px);">
+
+  <div class="ui-page-header">
+    <div>
+      <h1 class="ui-page-title">Add Customer</h1>
+      <p class="ui-page-desc">Create a new customer record</p>
+    </div>
+  </div>
+
+  <div class="ui-card" style="border-radius: var(--mt-card-radius, 8px); box-shadow: var(--mt-card-shadow, 0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06));">
+    <div class="ui-form-group">
+      <label class="ui-form-label">Full Name</label>
+      <input class="ui-form-input" type="text" placeholder="John Doe" value="Maria Johnson">
+    </div>
+
+    <div class="ui-form-group">
+      <label class="ui-form-label">Email Address</label>
+      <input class="ui-form-input" type="email" placeholder="john@example.com" value="maria@acme.co">
+      <span class="ui-form-hint">We'll send the welcome email here.</span>
+    </div>
+
+    <div class="ui-form-group">
+      <label class="ui-form-label">Role</label>
+      <select class="ui-form-select">
+        <option>Viewer</option>
+        <option selected>Editor</option>
+        <option>Admin</option>
+        <option>Owner</option>
+      </select>
+    </div>
+
+    <div class="ui-form-group">
+      <label class="ui-form-label">Bio</label>
+      <textarea class="ui-form-textarea" placeholder="Tell us about this customer...">Product designer at Acme Corp. Based in San Francisco.</textarea>
+    </div>
+
+    <div class="ui-form-group">
+      <label class="ui-form-label">Tags</label>
+      <div class="ui-flex ui-gap-2 ui-flex-wrap">
+        <span class="ui-tag primary">Enterprise <span class="ui-tag-remove">&times;</span></span>
+        <span class="ui-tag primary">Design <span class="ui-tag-remove">&times;</span></span>
+        <span class="ui-tag">+ Add tag</span>
+      </div>
+    </div>
+
+    <hr class="ui-divider">
+
+    <div class="ui-toggle on" style="margin-bottom: 12px;">
+      <span class="ui-toggle-label">Send welcome email</span>
+      <div class="ui-toggle-switch"></div>
+    </div>
+
+    <div class="ui-toggle">
+      <span class="ui-toggle-label">Require 2FA</span>
+      <div class="ui-toggle-switch"></div>
+    </div>
+
+    <hr class="ui-divider">
+
+    <div class="ui-flex-between">
+      <button class="ui-btn danger">Delete</button>
+      <div class="ui-flex ui-gap-2">
+        <button class="ui-btn">Cancel</button>
+        <button class="ui-btn primary">Save Customer</button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+</script>
+<script src="./engine.js"></script>
+</body>
+</html>

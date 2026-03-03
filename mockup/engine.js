@@ -3827,6 +3827,108 @@ function loadConfig() {
   throw new Error('[engine] No CONFIG found. Use window.MOCKUP, <script id="mockup-config">, or window.CONFIG.');
 }
 
+// --- Built-in scales for auto-variant generation ---
+const SCALES = {
+  radius: {
+    variants: { none: 'None', sm: 'Small', md: 'Medium', lg: 'Large', xl: 'Extra Large', pill: 'Pill' },
+    values:   { none: '0', sm: '4px', md: '8px', lg: '16px', xl: '24px', pill: '9999px' },
+    default: 'md'
+  },
+  spacing: {
+    variants: { none: 'None', xs: 'Extra Small', sm: 'Small', md: 'Medium', lg: 'Large', xl: 'Extra Large' },
+    values:   { none: '0', xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '48px' },
+    default: 'md'
+  },
+  'font-size': {
+    variants: { xs: 'Extra Small', sm: 'Small', md: 'Medium', lg: 'Large', xl: 'Extra Large', '2xl': 'Display' },
+    values:   { xs: '12px', sm: '14px', md: '16px', lg: '18px', xl: '24px', '2xl': '30px' },
+    default: 'md'
+  },
+  'font-weight': {
+    variants: { light: 'Light', normal: 'Normal', medium: 'Medium', semibold: 'Semibold', bold: 'Bold' },
+    values:   { light: '300', normal: '400', medium: '500', semibold: '600', bold: '700' },
+    default: 'normal'
+  },
+  opacity: {
+    variants: { '10': '10%', '25': '25%', '50': '50%', '75': '75%', '100': '100%' },
+    values:   { '10': '0.1', '25': '0.25', '50': '0.5', '75': '0.75', '100': '1' },
+    default: '100'
+  },
+  shadow: {
+    variants: { none: 'None', sm: 'Small', md: 'Medium', lg: 'Large', xl: 'Extra Large' },
+    values:   { none: 'none', sm: '0 1px 2px rgba(0,0,0,0.05)', md: '0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06)', lg: '0 4px 6px rgba(0,0,0,0.07),0 2px 4px rgba(0,0,0,0.06)', xl: '0 10px 15px rgba(0,0,0,0.1),0 4px 6px rgba(0,0,0,0.05)' },
+    default: 'md'
+  },
+  'border-width': {
+    variants: { none: 'None', thin: 'Thin', medium: 'Medium', thick: 'Thick' },
+    values:   { none: '0', thin: '1px', medium: '2px', thick: '4px' },
+    default: 'thin'
+  },
+  'line-height': {
+    variants: { tight: 'Tight', snug: 'Snug', normal: 'Normal', relaxed: 'Relaxed', loose: 'Loose' },
+    values:   { tight: '1.2', snug: '1.35', normal: '1.5', relaxed: '1.65', loose: '2' },
+    default: 'normal'
+  },
+  gap: {
+    variants: { none: 'None', sm: 'Small', md: 'Medium', lg: 'Large', xl: 'Extra Large' },
+    values:   { none: '0', sm: '8px', md: '16px', lg: '24px', xl: '40px' },
+    default: 'md'
+  }
+};
+
+function normalizeConfig(config) {
+  if (!config.options) return config;
+
+  const firstViewId = config.views && config.views[0] ? config.views[0].id : 'main';
+
+  config.options = config.options.map((opt, i) => {
+    // Auto-assign ID if missing
+    if (opt.id == null) opt.id = i + 1;
+
+    // Shorthand: "property" → target.property + type: "token"
+    if (opt.property && !opt.target) {
+      opt.target = { property: opt.property };
+      delete opt.property;
+    }
+
+    // Shorthand: "component" → target.component + type: "component"
+    if (opt.component && !opt.target) {
+      opt.target = { component: opt.component };
+      delete opt.component;
+    }
+
+    // Auto-infer type from target shape
+    if (!opt.type && opt.target) {
+      if (opt.target.property || opt.target.properties) opt.type = 'token';
+      else if (opt.target.component) opt.type = 'component';
+    }
+
+    // Auto-assign tags if missing (default to first view)
+    if (!opt.tags) opt.tags = [firstViewId];
+
+    // Auto-expand scale shorthand
+    if (opt.scale && SCALES[opt.scale]) {
+      const s = SCALES[opt.scale];
+      if (!opt.variants) opt.variants = { ...s.variants };
+      if (!opt.values && opt.type === 'token') opt.values = { ...s.values };
+      if (!opt.defaultVariant) opt.defaultVariant = opt.default || s.default;
+      delete opt.scale;
+      delete opt.default;
+    }
+
+    // Shorthand: "default" → "defaultVariant"
+    if (opt.default && !opt.defaultVariant) {
+      opt.defaultVariant = opt.default;
+      delete opt.default;
+    }
+
+    return opt;
+  });
+
+  console.log('[engine] Config normalized (%d options)', config.options.length);
+  return config;
+}
+
 function validateConfig(config) {
   if (!config.options) return;
   config.options.forEach(opt => {
@@ -3974,7 +4076,7 @@ document.addEventListener('click', (e) => {
 
 // --- Boot ---
 bootstrapFromMockup();
-const CONFIG = loadConfig();
+const CONFIG = normalizeConfig(loadConfig());
 
 // Apply defaults for omitted fields (reduces agent output tokens)
 if (!CONFIG.prompt) {

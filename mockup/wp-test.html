@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wp.css Component Test</title>
+<link rel="stylesheet" href="./engine.css">
+<link rel="stylesheet" href="./wp.css">
+<style>
+  body { background: #e6e6e6; margin: 0; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  h2 { font-size: 14px; color: #757575; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  h2:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+
+<div class="wp-sidebar" style="margin: 0 auto; border: 1px solid #ddd; border-radius: 4px; max-height: none;">
+
+  <h2 style="padding: 16px 16px 0;">Tab Bar</h2>
+  <div class="wp-tab-bar">
+    <button class="wp-tab active">Settings</button>
+    <button class="wp-tab">Styles</button>
+  </div>
+
+  <!-- Typography Panel -->
+  <div class="wp-panel open">
+    <div class="wp-panel-header">Typography</div>
+    <div class="wp-panel-body">
+
+      <h2>Select (FontSizePicker)</h2>
+      <div class="wp-select">
+        <label>Font Size</label>
+        <select class="wp-select-input">
+          <option>Small (13px)</option>
+          <option selected>Medium (20px)</option>
+          <option>Large (36px)</option>
+          <option>Extra Large (42px)</option>
+        </select>
+      </div>
+
+      <h2>Select (Font Family)</h2>
+      <div class="wp-select">
+        <label>Font Family</label>
+        <select class="wp-select-input">
+          <option selected>System Default</option>
+          <option>Inter</option>
+          <option>DM Sans</option>
+          <option>IBM Plex Mono</option>
+        </select>
+      </div>
+
+      <h2>Unit Input</h2>
+      <div class="wp-panel-row">
+        <label>Line Height</label>
+        <div class="wp-unit-input" style="width:100px;">
+          <input type="text" value="1.6">
+          <select class="wp-unit-select">
+            <option selected>px</option>
+            <option>em</option>
+            <option>rem</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="wp-panel-row">
+        <label>Letter Spacing</label>
+        <div class="wp-unit-input" style="width:100px;">
+          <input type="text" value="0">
+          <select class="wp-unit-select">
+            <option selected>px</option>
+            <option>em</option>
+          </select>
+        </div>
+      </div>
+
+      <h2>Button Group (Text Transform)</h2>
+      <span class="wp-section-heading">Appearance</span>
+      <div class="wp-btn-group">
+        <button class="wp-btn-group-item active">Aa</button>
+        <button class="wp-btn-group-item">AA</button>
+        <button class="wp-btn-group-item">aa</button>
+        <button class="wp-btn-group-item">Aa</button>
+      </div>
+
+      <h2>Toggle</h2>
+      <div class="wp-toggle on">
+        <label>Drop Cap</label>
+        <div class="wp-toggle-switch"></div>
+      </div>
+
+      <div class="wp-toggle">
+        <label>Uppercase</label>
+        <div class="wp-toggle-switch"></div>
+      </div>
+
+      <button class="wp-reset-btn">Reset all</button>
+    </div>
+  </div>
+
+  <!-- Color Panel -->
+  <div class="wp-panel open">
+    <div class="wp-panel-header">Color</div>
+    <div class="wp-panel-body">
+
+      <h2>Color Palette</h2>
+      <span class="wp-section-heading">Text</span>
+      <div class="wp-color-palette">
+        <div class="wp-color-swatch active" style="background:#000000" title="Black"></div>
+        <div class="wp-color-swatch" style="background:#abb8c3" title="Cyan bluish gray"></div>
+        <div class="wp-color-swatch" style="background:#ffffff" title="White"></div>
+        <div class="wp-color-swatch" style="background:#f78da7" title="Pale pink"></div>
+        <div class="wp-color-swatch" style="background:#cf2e2e" title="Vivid red"></div>
+        <div class="wp-color-swatch" style="background:#ff6900" title="Luminous vivid orange"></div>
+        <div class="wp-color-swatch" style="background:#fcb900" title="Luminous vivid amber"></div>
+        <div class="wp-color-swatch" style="background:#7bdcb5" title="Light green cyan"></div>
+        <div class="wp-color-swatch" style="background:#00d084" title="Vivid green cyan"></div>
+        <div class="wp-color-swatch" style="background:#8ed1fc" title="Pale cyan blue"></div>
+        <div class="wp-color-swatch" style="background:#0693e3" title="Vivid cyan blue"></div>
+        <div class="wp-color-swatch" style="background:#9b51e0" title="Vivid purple"></div>
+      </div>
+
+      <span class="wp-section-heading">Background</span>
+      <div class="wp-color-palette">
+        <div class="wp-color-swatch" style="background:#000000" title="Black"></div>
+        <div class="wp-color-swatch" style="background:#abb8c3" title="Cyan bluish gray"></div>
+        <div class="wp-color-swatch active" style="background:#ffffff" title="White"></div>
+        <div class="wp-color-swatch" style="background:#f78da7" title="Pale pink"></div>
+        <div class="wp-color-swatch" style="background:#cf2e2e" title="Vivid red"></div>
+      </div>
+
+      <h2>Gradient Picker</h2>
+      <span class="wp-section-heading">Gradient</span>
+      <div class="wp-gradient-bar" style="background: linear-gradient(135deg, #1e1e1e 0%, #3858e9 100%)"></div>
+      <div class="wp-gradient-presets">
+        <div class="wp-color-swatch active" style="background:linear-gradient(135deg,#1e1e1e 0%,#3858e9 100%)" title="Dark blue"></div>
+        <div class="wp-color-swatch" style="background:linear-gradient(135deg,#cf2e2e 0%,#ff6900 100%)" title="Red to orange"></div>
+        <div class="wp-color-swatch" style="background:linear-gradient(135deg,#00d084 0%,#0693e3 100%)" title="Green to blue"></div>
+        <div class="wp-color-swatch" style="background:linear-gradient(135deg,#f78da7 0%,#fcb900 100%)" title="Pink to amber"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dimensions Panel -->
+  <div class="wp-panel open">
+    <div class="wp-panel-header">Dimensions</div>
+    <div class="wp-panel-body">
+
+      <h2>Range Slider</h2>
+      <div class="wp-panel-row">
+        <label>Opacity</label>
+      </div>
+      <div class="wp-range">
+        <div class="wp-range-track"><div class="wp-range-fill" style="width:75%"></div></div>
+        <input class="wp-range-value" type="text" value="75">
+      </div>
+
+      <h2>Spacing Control</h2>
+      <span class="wp-section-heading">Padding</span>
+      <div class="wp-spacing-visual">
+        <input class="wp-spacing-input top" value="16px">
+        <input class="wp-spacing-input right" value="24px">
+        <input class="wp-spacing-input bottom" value="16px">
+        <input class="wp-spacing-input left" value="24px">
+        <button class="wp-spacing-link" title="Unlinked">🔗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Border Panel -->
+  <div class="wp-panel open">
+    <div class="wp-panel-header">Border</div>
+    <div class="wp-panel-body">
+
+      <h2>Border Control</h2>
+      <span class="wp-section-heading">Border</span>
+      <div class="wp-border-control">
+        <div class="wp-border-width"><input type="text" value="1"></div>
+        <div class="wp-border-style">
+          <select>
+            <option selected>Solid</option>
+            <option>Dashed</option>
+            <option>Dotted</option>
+          </select>
+        </div>
+        <div class="wp-border-color" style="background:#1e1e1e"></div>
+      </div>
+
+      <span class="wp-section-heading">Radius</span>
+      <div class="wp-panel-row">
+        <label>Border Radius</label>
+        <div class="wp-unit-input" style="width:100px;">
+          <input type="text" value="4">
+          <select class="wp-unit-select">
+            <option selected>px</option>
+            <option>%</option>
+            <option>em</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Panel (collapsed) -->
+  <div class="wp-panel">
+    <div class="wp-panel-header">Advanced</div>
+    <div class="wp-panel-body">
+
+      <h2>Text Input</h2>
+      <div class="wp-select">
+        <label>HTML Anchor</label>
+        <input class="wp-text-input" type="text" value="my-heading">
+      </div>
+
+      <div class="wp-select">
+        <label>Additional CSS class(es)</label>
+        <input class="wp-text-input" type="text" value="">
+      </div>
+    </div>
+  </div>
+
+  <!-- Block Toolbar Demo -->
+  <div style="padding: 16px; border-bottom: 1px solid #ddd;">
+    <h2>Block Toolbar</h2>
+    <div class="wp-toolbar">
+      <button class="wp-toolbar-btn active" title="Paragraph">¶</button>
+      <div class="wp-toolbar-separator"></div>
+      <button class="wp-toolbar-btn" title="Bold"><strong>B</strong></button>
+      <button class="wp-toolbar-btn" title="Italic"><em>I</em></button>
+      <button class="wp-toolbar-btn" title="Link">🔗</button>
+      <div class="wp-toolbar-separator"></div>
+      <button class="wp-toolbar-btn" title="More">⋯</button>
+    </div>
+  </div>
+
+  <!-- Button Group Alignment Demo -->
+  <div style="padding: 16px; border-bottom: 1px solid #ddd;">
+    <h2>Button Group (Alignment)</h2>
+    <span class="wp-section-heading">Text Alignment</span>
+    <div class="wp-btn-group">
+      <button class="wp-btn-group-item active" title="Align left">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19h16v-2H4v2zm10-6H4v2h10v-2zM4 9v2h16V9H4zm10-4H4v2h10V5z"/></svg>
+      </button>
+      <button class="wp-btn-group-item" title="Align center">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 15v2h10v-2H7zm-3 6h16v-2H4v2zm0-8h16v-2H4v2zm3-6v2h10V7H7zM4 3v2h16V3H4z"/></svg>
+      </button>
+      <button class="wp-btn-group-item" title="Align right">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 19h16v-2H4v2zm6-6h10v-2H10v2zM4 9v2h16V9H4zm6-4v2h10V5H10z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Notice Demo -->
+  <div style="padding: 16px;">
+    <h2>Notices</h2>
+    <div class="wp-notice">This block has been modified outside of the editor.</div>
+    <div class="wp-notice warning">This font family requires the Google Fonts plugin.</div>
+    <div class="wp-notice error">Invalid color value.</div>
+  </div>
+
+</div>
+
+</body>
+</html>
