@@ -278,7 +278,7 @@ class OptionsPanel extends HTMLElement {
           </button>
           <div class="panel-export-dropdown" style="display:none">
             <button class="panel-export-dropdown-item" data-export="pen">
-              <svg width="16" height="16" viewBox="0 -960 960 960" fill="currentColor"><path d="M160-400v-80h640v80H160Zm0-160v-80h640v80H160Zm200 320v-80h440v80H360Zm0-480v-80h440v80H360Z"/></svg>
+              <img width="16" height="16" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAD1SURBVHgB7ZcxCoMwFIafNkNGBwUXpUewN/EqvYoX6BXSG/QG7eABii6Ci+5imicVHKpirD6HfCA89MH/6ZOEWKDwff/cNM1NlZG6HNgewRi7FkXxtr7hz52Ch1RK4nLinPdvvje8bdvIcl1XAh2VDbQ41ALA5hrKsoQ1eJ43+Zz8CxgBI2AEjAD1ZmRGQC8wuxsOCcMQgiCY7KnrGtI0hU0EpJSQJEkn8ossyyCOY1jCohHked4FYNBYOPZsJjAmoRuOaK8D+C8IIbpaN3yVQC+B6IavFvgHh1iIKiAEBV5Ax538cGrjERkLdUPAPuDIH5iJ2R+e1F9qv5WwowAAAABJRU5ErkJggg==" alt="Pencil">
               <span>Download .pen file</span>
             </button>
             <div class="panel-export-dropdown-sep"></div>
@@ -546,7 +546,7 @@ class OptionsPanel extends HTMLElement {
             </p>
             <div class="help-export-actions">
               <button class="help-export-btn help-export-pen">
-                <svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+                <img width="18" height="18" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAD1SURBVHgB7ZcxCoMwFIafNkNGBwUXpUewN/EqvYoX6BXSG/QG7eABii6Ci+5imicVHKpirD6HfCA89MH/6ZOEWKDwff/cNM1NlZG6HNgewRi7FkXxtr7hz52Ch1RK4nLinPdvvje8bdvIcl1XAh2VDbQ41ALA5hrKsoQ1eJ43+Zz8CxgBI2AEjAD1ZmRGQC8wuxsOCcMQgiCY7KnrGtI0hU0EpJSQJEkn8ossyyCOY1jCohHked4FYNBYOPZsJjAmoRuOaK8D+C8IIbpaN3yVQC+B6IavFvgHh1iIKiAEBV5Ax538cGrjERkLdUPAPuDIH5iJ2R+e1F9qv5WwowAAAABJRU5ErkJggg==" alt="Pencil" style="border-radius:4px">
                 <div>
                   <div class="help-export-btn-title">Download .pen file</div>
                   <div class="help-export-btn-desc">Pencil design scaffold with variables, components, and views</div>
