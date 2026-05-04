@@ -3931,6 +3931,7 @@ function normalizeConfig(config) {
 
 function validateConfig(config) {
   if (!config.options) return;
+  const validViewIds = new Set((config.views || []).map(v => v.id));
   config.options.forEach(opt => {
     const count = opt.variants ? Object.keys(opt.variants).length : 0;
     if (count < 4) {
@@ -3949,7 +3950,38 @@ function validateConfig(config) {
         console.warn(`[engine] Component option ${opt.id} "${opt.name}" missing target.component.`);
       }
     }
+    // Multi-tag warning — engine only honors tags[0] for grouping/scoping
+    if (opt.tags && opt.tags.length > 1) {
+      const extras = opt.tags.slice(1).join(', ');
+      console.warn(`[engine] Option ${opt.id} "${opt.name}" lists ${opt.tags.length} tags but only "${opt.tags[0]}" is honored. Ignored: ${extras}. Duplicate the option per view if you need it in multiple panels.`);
+    }
+    // Unknown tag warning — tag must reference a real view id
+    if (opt.tags && opt.tags[0] && validViewIds.size && !validViewIds.has(opt.tags[0])) {
+      console.warn(`[engine] Option ${opt.id} "${opt.name}" tagged "${opt.tags[0]}" but no view has that id. Valid view ids: ${[...validViewIds].join(', ')}.`);
+    }
   });
+}
+
+// Scan the live DOM for duplicate IDs after view bootstrap. Duplicate IDs cause
+// SVG marker references (url(#x)), label[for=…] associations, and getElementById
+// lookups to resolve to whichever instance comes first in document order — usually
+// not the visible one. Common cause: a shared HTML helper that emits an inline
+// <marker id="…"> per render call, used across multiple variants/views.
+function checkDuplicateIds() {
+  const seen = new Map();
+  document.querySelectorAll('[id]').forEach(el => {
+    const id = el.id;
+    if (!id) return;
+    seen.set(id, (seen.get(id) || 0) + 1);
+  });
+  const dupes = [...seen.entries()].filter(([, n]) => n > 1);
+  if (!dupes.length) return;
+  // Allow expected engine-managed duplicates (none currently — placeholder for future).
+  const reportable = dupes;
+  if (!reportable.length) return;
+  const summary = reportable.slice(0, 10).map(([id, n]) => `  "${id}" × ${n}`).join('\n');
+  const more = reportable.length > 10 ? `\n  …and ${reportable.length - 10} more` : '';
+  console.warn(`[engine] Duplicate element IDs detected (${reportable.length}). url(#id) and getElementById() resolve to first match only:\n${summary}${more}`);
 }
 
 function applyTokenValue(opt, variantKey) {
@@ -4116,6 +4148,7 @@ if (_savedInterface) {
 }
 
 validateConfig(CONFIG);
+checkDuplicateIds();
 window.CONFIG = CONFIG;
 
 // Populate placeholder photos now that views are in DOM
