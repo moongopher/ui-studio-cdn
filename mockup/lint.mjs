@@ -20,7 +20,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { createContext, runInContext } from 'node:vm';
 
-const VERSION = '0.14';
+const VERSION = '0.15';
 
 const issues = { ok: true, lintVersion: VERSION, errors: [], warnings: [] };
 
@@ -304,16 +304,37 @@ function isolateBlock(src, attrPair) {
   return null;
 }
 
+// Class words that almost always mark a page/layout-level wrapper. Element-level
+// words like card/row/stack/grid/box/section are intentionally excluded.
+const PAGE_WRAPPER_RE = /class="[^"]*\b(?:page|layout|cols|wrapper|shell|frame|viewport|canvas)[a-z0-9_-]*\b[^"]*"/gi;
+
 function structuralFingerprint(html) {
   return {
     headers: (html.match(/<h[1-3]\b/gi) || []).length,
     tables: (html.match(/<table\b/gi) || []).length,
     forms: (html.match(/<form\b/gi) || []).length,
     inputs: (html.match(/<(?:input|select|textarea)\b/gi) || []).length,
+    landmarks: (html.match(/<(?:aside|section|main|header|footer|nav)\b/gi) || []).length,
+    pageWrappers: (html.match(PAGE_WRAPPER_RE) || []).length,
+    divs: (html.match(/<div\b/gi) || []).length,
+    nonWsBytes: html.replace(/\s+/g, '').length,
     nestedComponentNames: new Set(
       [...html.matchAll(/data-mt-component="([^"]+)"/g)].map(m => m[1])
     )
   };
+}
+
+// "Looks like a full UI" = any of these signals fires.
+//  - heading + content payload (tables/forms/4+ inputs) — original signal
+//  - any page-wrapper class word (page/layout/cols/wrapper/…)
+//  - any HTML5 landmark (aside/section/main/header/footer/nav)
+//  - bulky structure (≥ 6 divs AND ≥ 300 non-whitespace chars)
+function looksLikeFullUiBlock(fp) {
+  if (fp.headers >= 1 && (fp.tables > 0 || fp.forms > 0 || fp.inputs >= 4)) return true;
+  if (fp.pageWrappers >= 1) return true;
+  if (fp.landmarks >= 1) return true;
+  if (fp.divs >= 6 && fp.nonWsBytes >= 300) return true;
+  return false;
 }
 
 const componentOpts = options.filter(o => o.type === 'component');
@@ -341,20 +362,19 @@ if (componentOpts.length >= 2) {
       return;
     }
 
-    const looksLikeFullUi = fp.headers >= 1 && (fp.tables > 0 || fp.forms > 0 || fp.inputs >= 4);
-    if (looksLikeFullUi) {
+    if (looksLikeFullUiBlock(fp)) {
       if (!fullUiByComponent.has(inst.name)) fullUiByComponent.set(inst.name, new Set());
       fullUiByComponent.get(inst.name).add(inst.variant);
     }
   });
 
   for (const [name, { affected, nested }] of nestedByComponent) {
-    push('warning', 'component-misuse-nested',
+    push('error', 'component-misuse-nested',
       `Component "${name}" nests other component options (${[...nested].join(', ')}) inside ${affected.size} of its variants (${[...affected].join(', ')}) — variants will not compose. Use one component option for the structure and standard options for the inner pieces.`);
   }
   for (const [name, variants] of fullUiByComponent) {
-    push('warning', 'component-misuse-full-ui',
-      `Component "${name}" appears to render a full UI in ${variants.size} variant(s) (${[...variants].join(', ')}). Multiple full-UI component options stack vertically and don't compose — each option's choice is rendered as a separate independent block. Variants should contain only the differing element; share chrome via baseHtml.`);
+    push('error', 'component-misuse-full-ui',
+      `Component "${name}" appears to render a full UI in ${variants.size} variant(s) (${[...variants].join(', ')}). Multiple full-UI component options stack vertically and don't compose — each option's choice renders as an independent block. Variants should contain only the differing element; share chrome via baseHtml, or model the dimension as a token/standard option that swaps a class on a shared wrapper.`);
   }
 }
 

@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.14';
+const ENGINE_VERSION = '0.15';
 
 /** Extract label from variant value (string or {label, pros, cons} object) */
 function _vLabel(v) { return typeof v === 'object' && v !== null ? v.label : String(v || ''); }
@@ -4068,47 +4068,77 @@ function checkComponentVariantCoverage(config) {
 // Heuristic: detect the "each variant renders a full UI" antipattern that
 // breaks combinatorial behavior between multiple component options.
 //
-// When 2+ component options exist and any variant block contains structural
-// elements (h1/h2/table/form/large header) AND/OR another option's
-// data-mt-component anchors nested inside, the variants don't compose — each
-// is its own standalone UI and only one option's choice is visible at a time.
+// When 2+ component options exist, the engine renders every component instance
+// in the DOM and only swaps the active variant attribute per option — multiple
+// "full UI" component options therefore STACK and never compose. We flag a
+// variant as full-UI on any of: page-wrapper class word, HTML5 landmark,
+// heading + content payload, or bulky structure. Issues are consolidated per
+// component name so the report lists each option once with its affected
+// variants. Both rules are errors — they break the mockup at runtime, not
+// stylistic nits.
 function checkComponentMisuse(config) {
   if (!config.options) return;
   const componentOpts = config.options.filter(o => o.type === 'component');
   if (componentOpts.length < 2) return;
   const allComponentNames = new Set(componentOpts.map(o => o.target && o.target.component).filter(Boolean));
 
+  const fullUiByComponent = new Map();   // name → Set<variantKey>
+  const nestedByComponent = new Map();   // name → { affected: Set<variantKey>, nested: Set<otherName> }
+
   componentOpts.forEach(opt => {
     const name = opt.target && opt.target.component;
     if (!name) return;
     document.querySelectorAll(`[data-mt-component="${name}"]`).forEach(el => {
-      // Skip empty placeholder shells.
+      const variantKey = el.getAttribute('data-mt-variant');
+      if (!variantKey) return;
       if (el.children.length === 0 && !el.textContent.trim()) return;
 
-      // Other components' wrappers nested inside → these don't compose.
       const nestedNames = new Set();
       el.querySelectorAll('[data-mt-component]').forEach(child => {
         const n = child.getAttribute('data-mt-component');
         if (n && n !== name && allComponentNames.has(n)) nestedNames.add(n);
       });
       if (nestedNames.size > 0) {
-        _pushIssue('warning', 'component-misuse-nested',
-          `Component "${name}" variant "${el.getAttribute('data-mt-variant')}" nests other component options (${[...nestedNames].join(', ')}) — variants will not compose. Use one component option for the structure and standard options for the inner pieces.`);
+        if (!nestedByComponent.has(name)) {
+          nestedByComponent.set(name, { affected: new Set(), nested: new Set() });
+        }
+        const entry = nestedByComponent.get(name);
+        entry.affected.add(variantKey);
+        nestedNames.forEach(n => entry.nested.add(n));
         return;
       }
 
-      // Heavy structural payload → likely a full-UI duplicate per variant.
+      const html = el.outerHTML;
       const headers = el.querySelectorAll('h1, h2, h3').length;
       const tables = el.querySelectorAll('table').length;
       const forms = el.querySelectorAll('form').length;
       const inputs = el.querySelectorAll('input, select, textarea').length;
-      const looksLikeFullUi = headers >= 1 && (tables > 0 || forms > 0 || inputs >= 4);
+      const landmarks = el.querySelectorAll('aside, section, main, header, footer, nav').length;
+      const pageWrappers = (html.match(/class="[^"]*\b(?:page|layout|cols|wrapper|shell|frame|viewport|canvas)[a-z0-9_-]*\b[^"]*"/gi) || []).length;
+      const divs = el.querySelectorAll('div').length;
+      const nonWsBytes = html.replace(/\s+/g, '').length;
+
+      const looksLikeFullUi =
+        (headers >= 1 && (tables > 0 || forms > 0 || inputs >= 4))
+        || pageWrappers >= 1
+        || landmarks >= 1
+        || (divs >= 6 && nonWsBytes >= 300);
+
       if (looksLikeFullUi) {
-        _pushIssue('warning', 'component-misuse-full-ui',
-          `Component "${name}" variant "${el.getAttribute('data-mt-variant')}" appears to render a full UI (${headers} heading(s), ${inputs} input(s), ${tables} table(s)). Multiple full-UI component options stack vertically and don't compose. Variants should contain only the differing element; share chrome via baseHtml.`);
+        if (!fullUiByComponent.has(name)) fullUiByComponent.set(name, new Set());
+        fullUiByComponent.get(name).add(variantKey);
       }
     });
   });
+
+  for (const [name, { affected, nested }] of nestedByComponent) {
+    _pushIssue('error', 'component-misuse-nested',
+      `Component "${name}" nests other component options (${[...nested].join(', ')}) inside ${affected.size} of its variants (${[...affected].join(', ')}) — variants will not compose. Use one component option for the structure and standard options for the inner pieces.`);
+  }
+  for (const [name, variants] of fullUiByComponent) {
+    _pushIssue('error', 'component-misuse-full-ui',
+      `Component "${name}" appears to render a full UI in ${variants.size} variant(s) (${[...variants].join(', ')}). Multiple full-UI component options stack vertically and don't compose — each option's choice renders as an independent block. Variants should contain only the differing element; share chrome via baseHtml, or model the dimension as a token/standard option that swaps a class on a shared wrapper.`);
+  }
 }
 
 // Inline <style> tags inside view content violate the "loader is wiring only"
@@ -4117,7 +4147,7 @@ function checkInlineStyleInViews() {
   document.querySelectorAll('.mt-view style').forEach(el => {
     const view = el.closest('.mt-view');
     const viewId = view ? view.id.replace(/^view-/, '') : '?';
-    _pushIssue('warning', 'inline-style-in-view',
+    _pushIssue('error', 'inline-style-in-view',
       `<style> block found inside view "${viewId}" — move CSS to theme.css.`);
   });
 }
