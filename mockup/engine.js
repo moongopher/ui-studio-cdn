@@ -2,7 +2,7 @@
    ENGINE CODE — Do not modify
    ============================================================ */
 
-const ENGINE_VERSION = '0.13';
+const ENGINE_VERSION = '0.14';
 
 /** Extract label from variant value (string or {label, pros, cons} object) */
 function _vLabel(v) { return typeof v === 'object' && v !== null ? v.label : String(v || ''); }
@@ -3929,44 +3929,80 @@ function normalizeConfig(config) {
   return config;
 }
 
+// ============================================================================
+// VALIDATION
+// ----------------------------------------------------------------------------
+// Validation runs at boot and writes a structured report to
+// window.__mockupValidation. Every rule pushes a typed issue with a stable
+// `code` so the lint CLI (engine/mockup/lint.mjs) can produce comparable
+// output from static parsing. Rule semantics are mirrored in lint.mjs;
+// implementations differ because the engine has a real DOM and the lint CLI
+// has only string-extracted data.
+// ============================================================================
+
+function _initValidationReport() {
+  window.__mockupValidation = {
+    ok: true,
+    engineVersion: ENGINE_VERSION,
+    errors: [],
+    warnings: []
+  };
+}
+
+function _pushIssue(severity, code, detail) {
+  const report = window.__mockupValidation;
+  if (!report) return;
+  const bucket = severity === 'error' ? report.errors : report.warnings;
+  bucket.push({ code, severity, detail });
+  if (severity === 'error') report.ok = false;
+  // Mirror to console so dev tools surface it without inspecting the global.
+  const fn = severity === 'error' ? console.error : console.warn;
+  fn(`[engine] ${code}: ${detail}`);
+}
+
 function validateConfig(config) {
   if (!config.options) return;
   const validViewIds = new Set((config.views || []).map(v => v.id));
   config.options.forEach(opt => {
     const count = opt.variants ? Object.keys(opt.variants).length : 0;
     if (count < 4) {
-      console.warn(`[engine] Option ${opt.id} "${opt.name}" has ${count} variant(s) — minimum 4 recommended.`);
+      _pushIssue('warning', 'too-few-variants',
+        `Option ${opt.id} "${opt.name}" has ${count} variant(s) — minimum 4 recommended.`);
     }
     if (opt.type === 'token') {
       if (!opt.values) {
-        console.warn(`[engine] Token option ${opt.id} "${opt.name}" missing "values" field.`);
+        _pushIssue('error', 'token-missing-values',
+          `Token option ${opt.id} "${opt.name}" missing "values" field.`);
       }
       if (!opt.target || (!opt.target.property && !opt.target.properties)) {
-        console.warn(`[engine] Token option ${opt.id} "${opt.name}" missing target.property or target.properties.`);
+        _pushIssue('error', 'token-missing-target',
+          `Token option ${opt.id} "${opt.name}" missing target.property or target.properties.`);
       }
     }
     if (opt.type === 'component') {
       if (!opt.target || !opt.target.component) {
-        console.warn(`[engine] Component option ${opt.id} "${opt.name}" missing target.component.`);
+        _pushIssue('error', 'component-missing-target',
+          `Component option ${opt.id} "${opt.name}" missing target.component.`);
       }
     }
-    // Multi-tag warning — engine only honors tags[0] for grouping/scoping
     if (opt.tags && opt.tags.length > 1) {
       const extras = opt.tags.slice(1).join(', ');
-      console.warn(`[engine] Option ${opt.id} "${opt.name}" lists ${opt.tags.length} tags but only "${opt.tags[0]}" is honored. Ignored: ${extras}. Duplicate the option per view if you need it in multiple panels.`);
+      _pushIssue('warning', 'multi-tag-ignored',
+        `Option ${opt.id} "${opt.name}" lists ${opt.tags.length} tags but only "${opt.tags[0]}" is honored. Ignored: ${extras}. Duplicate the option per view if you need it in multiple panels.`);
     }
-    // Unknown tag warning — tag must reference a real view id
     if (opt.tags && opt.tags[0] && validViewIds.size && !validViewIds.has(opt.tags[0])) {
-      console.warn(`[engine] Option ${opt.id} "${opt.name}" tagged "${opt.tags[0]}" but no view has that id. Valid view ids: ${[...validViewIds].join(', ')}.`);
+      _pushIssue('error', 'unknown-view-tag',
+        `Option ${opt.id} "${opt.name}" tagged "${opt.tags[0]}" but no view has that id. Valid view ids: ${[...validViewIds].join(', ')}.`);
     }
   });
 }
 
-// Scan the live DOM for duplicate IDs after view bootstrap. Duplicate IDs cause
-// SVG marker references (url(#x)), label[for=…] associations, and getElementById
-// lookups to resolve to whichever instance comes first in document order — usually
-// not the visible one. Common cause: a shared HTML helper that emits an inline
-// <marker id="…"> per render call, used across multiple variants/views.
+// Scan the live DOM for duplicate IDs after view bootstrap. Duplicate IDs
+// cause SVG marker references (url(#x)), label[for=…] associations, and
+// getElementById lookups to resolve to whichever instance comes first in
+// document order — usually not the visible one. Common cause: a shared HTML
+// helper that emits an inline <marker id="…"> per render call, used across
+// multiple variants/views.
 function checkDuplicateIds() {
   const seen = new Map();
   document.querySelectorAll('[id]').forEach(el => {
@@ -3976,12 +4012,123 @@ function checkDuplicateIds() {
   });
   const dupes = [...seen.entries()].filter(([, n]) => n > 1);
   if (!dupes.length) return;
-  // Allow expected engine-managed duplicates (none currently — placeholder for future).
-  const reportable = dupes;
-  if (!reportable.length) return;
-  const summary = reportable.slice(0, 10).map(([id, n]) => `  "${id}" × ${n}`).join('\n');
-  const more = reportable.length > 10 ? `\n  …and ${reportable.length - 10} more` : '';
-  console.warn(`[engine] Duplicate element IDs detected (${reportable.length}). url(#id) and getElementById() resolve to first match only:\n${summary}${more}`);
+  const summary = dupes.slice(0, 10).map(([id, n]) => `"${id}" × ${n}`).join(', ');
+  const more = dupes.length > 10 ? ` …and ${dupes.length - 10} more` : '';
+  _pushIssue('error', 'duplicate-id',
+    `${dupes.length} duplicate element id(s): ${summary}${more}. url(#id) and getElementById() resolve to first match only.`);
+}
+
+// For each standard option, every {target.el}-{variantKey} must exist in the DOM.
+// Missing IDs silently break variant toggling.
+function checkStandardVariantCoverage(config) {
+  if (!config.options) return;
+  config.options.forEach(opt => {
+    const isStandard = !opt.type || opt.type === 'standard';
+    if (!isStandard) return;
+    const el = opt.target && opt.target.el;
+    if (!el || !opt.variants) return;
+    const parent = document.getElementById(el);
+    if (!parent) {
+      _pushIssue('error', 'missing-target-el',
+        `Standard option ${opt.id} "${opt.name}" target.el "${el}" not found in DOM.`);
+      return;
+    }
+    Object.keys(opt.variants).forEach(key => {
+      const id = `${el}-${key}`;
+      if (!document.getElementById(id)) {
+        _pushIssue('error', 'missing-variant-el',
+          `Standard option ${opt.id} "${opt.name}" missing variant element id="${id}".`);
+      }
+    });
+  });
+}
+
+// For each component option, every variant key must have at least one
+// matching [data-mt-component][data-mt-variant] instance in the DOM.
+function checkComponentVariantCoverage(config) {
+  if (!config.options) return;
+  config.options.forEach(opt => {
+    if (opt.type !== 'component') return;
+    const name = opt.target && opt.target.component;
+    if (!name || !opt.variants) return;
+    const seenKeys = new Set();
+    document.querySelectorAll(`[data-mt-component="${name}"]`).forEach(el => {
+      const k = el.getAttribute('data-mt-variant');
+      if (k) seenKeys.add(k);
+    });
+    Object.keys(opt.variants).forEach(key => {
+      if (!seenKeys.has(key)) {
+        _pushIssue('error', 'missing-component-variant',
+          `Component option ${opt.id} "${opt.name}" has no [data-mt-component="${name}"][data-mt-variant="${key}"] instance.`);
+      }
+    });
+  });
+}
+
+// Heuristic: detect the "each variant renders a full UI" antipattern that
+// breaks combinatorial behavior between multiple component options.
+//
+// When 2+ component options exist and any variant block contains structural
+// elements (h1/h2/table/form/large header) AND/OR another option's
+// data-mt-component anchors nested inside, the variants don't compose — each
+// is its own standalone UI and only one option's choice is visible at a time.
+function checkComponentMisuse(config) {
+  if (!config.options) return;
+  const componentOpts = config.options.filter(o => o.type === 'component');
+  if (componentOpts.length < 2) return;
+  const allComponentNames = new Set(componentOpts.map(o => o.target && o.target.component).filter(Boolean));
+
+  componentOpts.forEach(opt => {
+    const name = opt.target && opt.target.component;
+    if (!name) return;
+    document.querySelectorAll(`[data-mt-component="${name}"]`).forEach(el => {
+      // Skip empty placeholder shells.
+      if (el.children.length === 0 && !el.textContent.trim()) return;
+
+      // Other components' wrappers nested inside → these don't compose.
+      const nestedNames = new Set();
+      el.querySelectorAll('[data-mt-component]').forEach(child => {
+        const n = child.getAttribute('data-mt-component');
+        if (n && n !== name && allComponentNames.has(n)) nestedNames.add(n);
+      });
+      if (nestedNames.size > 0) {
+        _pushIssue('warning', 'component-misuse-nested',
+          `Component "${name}" variant "${el.getAttribute('data-mt-variant')}" nests other component options (${[...nestedNames].join(', ')}) — variants will not compose. Use one component option for the structure and standard options for the inner pieces.`);
+        return;
+      }
+
+      // Heavy structural payload → likely a full-UI duplicate per variant.
+      const headers = el.querySelectorAll('h1, h2, h3').length;
+      const tables = el.querySelectorAll('table').length;
+      const forms = el.querySelectorAll('form').length;
+      const inputs = el.querySelectorAll('input, select, textarea').length;
+      const looksLikeFullUi = headers >= 1 && (tables > 0 || forms > 0 || inputs >= 4);
+      if (looksLikeFullUi) {
+        _pushIssue('warning', 'component-misuse-full-ui',
+          `Component "${name}" variant "${el.getAttribute('data-mt-variant')}" appears to render a full UI (${headers} heading(s), ${inputs} input(s), ${tables} table(s)). Multiple full-UI component options stack vertically and don't compose. Variants should contain only the differing element; share chrome via baseHtml.`);
+      }
+    });
+  });
+}
+
+// Inline <style> tags inside view content violate the "loader is wiring only"
+// rule — CSS belongs in theme.css. Detect by scanning each view container.
+function checkInlineStyleInViews() {
+  document.querySelectorAll('.mt-view style').forEach(el => {
+    const view = el.closest('.mt-view');
+    const viewId = view ? view.id.replace(/^view-/, '') : '?';
+    _pushIssue('warning', 'inline-style-in-view',
+      `<style> block found inside view "${viewId}" — move CSS to theme.css.`);
+  });
+}
+
+function runAllValidation(config) {
+  validateConfig(config);
+  checkStandardVariantCoverage(config);
+  checkComponentVariantCoverage(config);
+  checkComponentMisuse(config);
+  checkInlineStyleInViews();
+  checkDuplicateIds();
 }
 
 function applyTokenValue(opt, variantKey) {
@@ -4107,6 +4254,7 @@ document.addEventListener('click', (e) => {
 });
 
 // --- Boot ---
+_initValidationReport();
 bootstrapFromMockup();
 const CONFIG = normalizeConfig(loadConfig());
 
@@ -4147,8 +4295,7 @@ if (_savedInterface) {
   // No saved preference — use CONFIG default
 }
 
-validateConfig(CONFIG);
-checkDuplicateIds();
+runAllValidation(CONFIG);
 window.CONFIG = CONFIG;
 
 // Populate placeholder photos now that views are in DOM
