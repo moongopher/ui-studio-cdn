@@ -305,35 +305,21 @@ function isolateBlock(src, attrPair) {
 }
 
 // Class words that almost always mark a page/layout-level wrapper. Element-level
-// words like card/row/stack/grid/box/section are intentionally excluded.
-const PAGE_WRAPPER_RE = /class="[^"]*\b(?:page|layout|cols|wrapper|shell|frame|viewport|canvas)[a-z0-9_-]*\b[^"]*"/gi;
+// words like card/row/stack/grid/box/section are intentionally excluded. Mirrors
+// _PAGE_WRAPPER_RE in engine.js — keep both lists in sync when adding signals.
+const PAGE_WRAPPER_RE = /class="[^"]*\b(?:page|layout|cols|wrapper|shell|frame|viewport|canvas)[a-z0-9_-]*\b[^"]*"/i;
 
-function structuralFingerprint(html) {
-  return {
-    headers: (html.match(/<h[1-3]\b/gi) || []).length,
-    tables: (html.match(/<table\b/gi) || []).length,
-    forms: (html.match(/<form\b/gi) || []).length,
-    inputs: (html.match(/<(?:input|select|textarea)\b/gi) || []).length,
-    landmarks: (html.match(/<(?:aside|section|main|header|footer|nav)\b/gi) || []).length,
-    pageWrappers: (html.match(PAGE_WRAPPER_RE) || []).length,
-    divs: (html.match(/<div\b/gi) || []).length,
-    nonWsBytes: html.replace(/\s+/g, '').length,
-    nestedComponentNames: new Set(
-      [...html.matchAll(/data-mt-component="([^"]+)"/g)].map(m => m[1])
-    )
-  };
-}
-
-// "Looks like a full UI" = any of these signals fires.
-//  - heading + content payload (tables/forms/4+ inputs) — original signal
-//  - any page-wrapper class word (page/layout/cols/wrapper/…)
-//  - any HTML5 landmark (aside/section/main/header/footer/nav)
-//  - bulky structure (≥ 6 divs AND ≥ 300 non-whitespace chars)
-function looksLikeFullUiBlock(fp) {
-  if (fp.headers >= 1 && (fp.tables > 0 || fp.forms > 0 || fp.inputs >= 4)) return true;
-  if (fp.pageWrappers >= 1) return true;
-  if (fp.landmarks >= 1) return true;
-  if (fp.divs >= 6 && fp.nonWsBytes >= 300) return true;
+// Cheap-first short-circuit predicate. Mirrors _looksLikeFullUiEl in engine.js.
+function looksLikeFullUiHtml(html) {
+  if (PAGE_WRAPPER_RE.test(html)) return true;
+  if (/<(?:aside|section|main|header|footer|nav)\b/i.test(html)) return true;
+  const headers = (html.match(/<h[1-3]\b/gi) || []).length;
+  if (headers >= 1) {
+    if (/<(?:table|form)\b/i.test(html)) return true;
+    if ((html.match(/<(?:input|select|textarea)\b/gi) || []).length >= 4) return true;
+  }
+  const divs = (html.match(/<div\b/gi) || []).length;
+  if (divs >= 6 && html.replace(/\s+/g, '').length >= 300) return true;
   return false;
 }
 
@@ -349,9 +335,12 @@ if (componentOpts.length >= 2) {
     const block = isolateBlock(cleanViewSrc, `data-mt-component="${inst.name}" data-mt-variant="${inst.variant}"`)
       || isolateBlock(cleanViewSrc, `data-mt-variant="${inst.variant}" data-mt-component="${inst.name}"`);
     if (!block) return;
-    const fp = structuralFingerprint(block);
 
-    const nested = [...fp.nestedComponentNames].filter(n => n !== inst.name && componentNameSet.has(n));
+    // Cheap nested check first; structural signals only run if not nested.
+    const nestedNames = new Set(
+      [...block.matchAll(/data-mt-component="([^"]+)"/g)].map(m => m[1])
+    );
+    const nested = [...nestedNames].filter(n => n !== inst.name && componentNameSet.has(n));
     if (nested.length > 0) {
       if (!nestedByComponent.has(inst.name)) {
         nestedByComponent.set(inst.name, { affected: new Set(), nested: new Set() });
@@ -362,7 +351,7 @@ if (componentOpts.length >= 2) {
       return;
     }
 
-    if (looksLikeFullUiBlock(fp)) {
+    if (looksLikeFullUiHtml(block)) {
       if (!fullUiByComponent.has(inst.name)) fullUiByComponent.set(inst.name, new Set());
       fullUiByComponent.get(inst.name).add(inst.variant);
     }

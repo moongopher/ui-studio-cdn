@@ -4065,17 +4065,34 @@ function checkComponentVariantCoverage(config) {
   });
 }
 
+// Class words that almost always mark a page/layout-level wrapper. Element-level
+// words like card/row/stack/grid/box/section are intentionally excluded. Mirrors
+// PAGE_WRAPPER_RE in lint.mjs — keep both lists in sync when adding signals.
+const _PAGE_WRAPPER_RE = /class="[^"]*\b(?:page|layout|cols|wrapper|shell|frame|viewport|canvas)[a-z0-9_-]*\b[^"]*"/i;
+
+// Cheap-first short-circuit predicate. Order matters: regex tests on outerHTML
+// are cheaper than full DOM walks, so they fire before the heading/divs paths.
+function _looksLikeFullUiEl(el) {
+  const html = el.outerHTML;
+  if (_PAGE_WRAPPER_RE.test(html)) return true;
+  if (el.querySelector('aside, section, main, header, footer, nav')) return true;
+  if (el.querySelectorAll('h1, h2, h3').length >= 1) {
+    if (el.querySelector('table, form')) return true;
+    if (el.querySelectorAll('input, select, textarea').length >= 4) return true;
+  }
+  if (el.querySelectorAll('div').length >= 6 && html.replace(/\s+/g, '').length >= 300) return true;
+  return false;
+}
+
 // Heuristic: detect the "each variant renders a full UI" antipattern that
 // breaks combinatorial behavior between multiple component options.
 //
 // When 2+ component options exist, the engine renders every component instance
 // in the DOM and only swaps the active variant attribute per option — multiple
-// "full UI" component options therefore STACK and never compose. We flag a
-// variant as full-UI on any of: page-wrapper class word, HTML5 landmark,
-// heading + content payload, or bulky structure. Issues are consolidated per
-// component name so the report lists each option once with its affected
-// variants. Both rules are errors — they break the mockup at runtime, not
-// stylistic nits.
+// "full UI" component options therefore STACK and never compose. Issues are
+// consolidated per component name so the report lists each option once with its
+// affected variants. Both rules are errors — they break the mockup at runtime,
+// not stylistic nits.
 function checkComponentMisuse(config) {
   if (!config.options) return;
   const componentOpts = config.options.filter(o => o.type === 'component');
@@ -4091,6 +4108,7 @@ function checkComponentMisuse(config) {
     document.querySelectorAll(`[data-mt-component="${name}"]`).forEach(el => {
       const variantKey = el.getAttribute('data-mt-variant');
       if (!variantKey) return;
+      // Skip empty placeholder shells — never the source of a misuse pattern.
       if (el.children.length === 0 && !el.textContent.trim()) return;
 
       const nestedNames = new Set();
@@ -4108,23 +4126,7 @@ function checkComponentMisuse(config) {
         return;
       }
 
-      const html = el.outerHTML;
-      const headers = el.querySelectorAll('h1, h2, h3').length;
-      const tables = el.querySelectorAll('table').length;
-      const forms = el.querySelectorAll('form').length;
-      const inputs = el.querySelectorAll('input, select, textarea').length;
-      const landmarks = el.querySelectorAll('aside, section, main, header, footer, nav').length;
-      const pageWrappers = (html.match(/class="[^"]*\b(?:page|layout|cols|wrapper|shell|frame|viewport|canvas)[a-z0-9_-]*\b[^"]*"/gi) || []).length;
-      const divs = el.querySelectorAll('div').length;
-      const nonWsBytes = html.replace(/\s+/g, '').length;
-
-      const looksLikeFullUi =
-        (headers >= 1 && (tables > 0 || forms > 0 || inputs >= 4))
-        || pageWrappers >= 1
-        || landmarks >= 1
-        || (divs >= 6 && nonWsBytes >= 300);
-
-      if (looksLikeFullUi) {
+      if (_looksLikeFullUiEl(el)) {
         if (!fullUiByComponent.has(name)) fullUiByComponent.set(name, new Set());
         fullUiByComponent.get(name).add(variantKey);
       }
